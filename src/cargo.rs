@@ -99,7 +99,7 @@ pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
     // Filter ignored lines and main.rs content
     reader
         .lines()
-        .filter_map(|line| line.ok())
+        .map_while(std::io::Result::ok)
         .filter(|line| !line.starts_with("fn main() {}"))
         .filter(|line| !line_should_be_ignored(line))
         .for_each(|line| {

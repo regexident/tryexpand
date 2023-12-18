@@ -510,7 +510,7 @@ fn normalize_expansion(input: &[u8], num_lines_to_skip: usize, project: &Project
         .skip(num_lines_to_skip)
         .filter(|line| !line.starts_with(&proj_name_prefix))
         .map(|line| line.strip_prefix(&project_path_prefix).unwrap_or(line))
-        .map(|line| line.strip_prefix(&blocking_prefix).unwrap_or(line))
+        .map(|line| line.strip_prefix(blocking_prefix).unwrap_or(line))
         .collect::<Vec<_>>()
         .join("\n");
 
