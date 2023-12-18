@@ -1,8 +1,8 @@
-use crate::dependencies::{Dependency, Patch, RegistryPatch};
+use std::{collections::BTreeMap as Map, ffi::OsStr, path::PathBuf};
+
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap as Map;
-use std::ffi::OsStr;
-use std::path::PathBuf;
+
+use crate::dependencies::{Dependency, Patch, RegistryPatch};
 
 #[derive(Serialize, Debug)]
 pub struct Manifest {

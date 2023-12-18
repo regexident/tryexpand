@@ -3,11 +3,9 @@ use std::io::BufRead;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::error::{Error, Result};
-use crate::expand::Project;
-use crate::manifest::Name;
-use crate::rustflags;
 use serde::Deserialize;
+
+use crate::{error::{Error, Result}, expand::Project, manifest::Name, rustflags};
 
 #[derive(Deserialize)]
 pub struct Metadata {

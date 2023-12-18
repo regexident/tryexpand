@@ -1,19 +1,8 @@
-use std::env;
-use std::ffi::OsStr;
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{env, ffi::OsStr, fs, io::Write, path::{Path, PathBuf}, sync::atomic::{AtomicUsize, Ordering}};
 
-use crate::cargo;
-use crate::dependencies::{self, Dependency};
-use crate::features;
-use crate::manifest::{Bin, Build, Config, Manifest, Name, Package, Workspace};
-use crate::message::{message_different, message_expansion_error};
-use crate::rustflags;
-use crate::{error::Error, error::Result};
-use syn::punctuated::Punctuated;
-use syn::{Item, Meta, Token};
+use syn::{punctuated::Punctuated, Item, Meta, Token};
+
+use crate::{cargo, dependencies::{self, Dependency}, features, manifest::{Bin, Build, Config, Manifest, Name, Package, Workspace}, message::{message_different, message_expansion_error}, rustflags, error::{Error, Result}};
 
 /// An extension for files containing `cargo expand` result.
 const EXPANDED_RS_SUFFIX: &str = "expanded.rs";

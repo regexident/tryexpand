@@ -1,5 +1,4 @@
-use std::env;
-use std::process::Command;
+use std::{env, process::Command};
 
 const RUSTFLAGS: &str = "RUSTFLAGS";
 const IGNORED_LINTS: &[&str] = &["dead_code"];

@@ -1,10 +1,6 @@
-use serde::de::DeserializeOwned;
-use serde::{de, Deserialize, Deserializer};
-use std::env;
-use std::error::Error;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::PathBuf;
+use std::{env, error::Error, ffi::OsStr, fs, path::PathBuf};
+
+use serde::{de::{DeserializeOwned, self}, Deserialize, Deserializer};
 
 pub fn find() -> Option<Vec<String>> {
     try_find().ok()

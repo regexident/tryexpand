@@ -1,14 +1,9 @@
-use crate::error::Error;
-use crate::manifest::Edition;
-use serde::de::value::MapAccessDeserializer;
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::{collections::BTreeMap as Map, fmt, fs, path::{Path, PathBuf}};
+
+use serde::{de::{value::MapAccessDeserializer, self, Visitor}, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use std::collections::BTreeMap as Map;
-use std::fmt;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
+
+use crate::{error::Error, manifest::Edition};
 
 pub(crate) fn get_manifest(manifest_dir: &Path) -> Manifest {
     try_get_manifest(manifest_dir).unwrap_or_default()
