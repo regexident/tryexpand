@@ -5,7 +5,12 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::{error::{Error, Result}, expand::Project, manifest::Name, rustflags};
+use crate::{
+    error::{Error, Result},
+    expand::Project,
+    manifest::Name,
+    rustflags,
+};
 
 #[derive(Deserialize)]
 pub struct Metadata {
@@ -20,10 +25,7 @@ fn raw_cargo() -> Command {
 fn cargo(project: &Project) -> Command {
     let mut cmd = raw_cargo();
     cmd.current_dir(&project.dir);
-    cmd.env(
-        "CARGO_TARGET_DIR",
-        &project.inner_target_dir,
-    );
+    cmd.env("CARGO_TARGET_DIR", &project.inner_target_dir);
     rustflags::set_env(&mut cmd);
     cmd
 }
@@ -38,11 +40,13 @@ pub(crate) fn metadata() -> Result<Metadata> {
     serde_json::from_slice(&output.stdout).map_err(Error::CargoMetadata)
 }
 
-pub(crate) fn expand<I, S>(
-    project: &Project,
-    name: &Name,
-    args: &Option<I>,
-) -> Result<(bool, Vec<u8>)>
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub(crate) enum Expansion {
+    Success { stdout: String },
+    Failure { stderr: String },
+}
+
+pub(crate) fn expand<I, S>(project: &Project, name: &Name, args: &Option<I>) -> Result<Expansion>
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
@@ -59,21 +63,28 @@ where
         cargo.args(args.clone());
     }
 
-    let cargo_expand = cargo
+    let output = cargo
         .output()
         .map_err(|e| Error::CargoExpandExecutionError(e.to_string()))?;
 
-    let has_errors = {
-        let msg = b"error: ";
-        cargo_expand.stderr.windows(msg.len()).any(|w| w == msg)
-    };
+    let status = output.status;
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    // Handle compilation or macro expansion errors
-    if !cargo_expand.status.success() || (!cargo_expand.stdout.is_empty() && has_errors) {
-        return Ok((false, cargo_expand.stderr));
+    // Sometimes the `cargo expand` command returns a success status,
+    // despite an error having occurred, so we need to look for those:
+    let has_errors = stderr.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with("error: ") || line.starts_with("ERROR: ")
+    });
+
+    let is_success = status.success() && !output.stdout.is_empty() && !has_errors;
+
+    if is_success {
+        Ok(Expansion::Success { stdout })
+    } else {
+        Ok(Expansion::Failure { stderr })
     }
-
-    Ok((cargo_expand.status.success(), cargo_expand.stdout))
 }
 
 /// Builds dependencies for macro expansion and pipes `cargo` output to `STDOUT`.
