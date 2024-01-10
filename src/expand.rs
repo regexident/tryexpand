@@ -1,8 +1,23 @@
-use std::{env, ffi::OsStr, fs, io::Write, path::{Path, PathBuf}, sync::atomic::{AtomicUsize, Ordering}};
+use std::{
+    env,
+    ffi::OsStr,
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use syn::{punctuated::Punctuated, Item, Meta, Token};
 
-use crate::{cargo, dependencies::{self, Dependency}, features, manifest::{Bin, Build, Config, Manifest, Name, Package, Workspace}, message::{message_different, message_expansion_error}, rustflags, error::{Error, Result}};
+use crate::{
+    cargo,
+    dependencies::{self, Dependency},
+    error::{Error, Result},
+    features,
+    manifest::{Bin, Build, Config, Manifest, Name, Package, Workspace},
+    message::{message_different, message_expansion_error},
+    rustflags,
+};
 
 /// An extension for files containing `cargo expand` result.
 const EXPANDED_RS_SUFFIX: &str = "expanded.rs";
@@ -461,7 +476,10 @@ impl ExpandedTest {
         let expected_expansion_bytes = std::fs::read(expanded)?;
         let expected_expansion = String::from_utf8_lossy(&expected_expansion_bytes);
 
-        let same = output.lines().eq(expected_expansion.lines());
+        let same = output
+            .trim_end_matches(['\n', '\r'])
+            .lines()
+            .eq(expected_expansion.trim_end_matches(['\n', '\r']).lines());
 
         if !same && project.overwrite {
             if let ExpansionBehavior::ExpectFiles = expansion_behavior {
