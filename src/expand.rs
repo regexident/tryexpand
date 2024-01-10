@@ -254,7 +254,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
 
     let features = features::find();
 
-    let overwrite = match env::var_os("MACROTEST") {
+    let overwrite = match env::var_os("tryexpand") {
         Some(ref v) if v == "overwrite" => true,
         Some(v) => return Err(Error::UnrecognizedEnv(v)),
         None => false,
@@ -263,7 +263,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
     static COUNT: AtomicUsize = AtomicUsize::new(0);
     // Use unique string for the crate dir to
     // prevent conflicts when running parallel tests.
-    let unique_string: String = format!("macrotest{:03}", COUNT.fetch_add(1, Ordering::SeqCst));
+    let unique_string: String = format!("tryexpand{:03}", COUNT.fetch_add(1, Ordering::SeqCst));
     let dir = path!(target_dir / "tests" / crate_name / unique_string);
     if dir.exists() {
         // Remove remaining artifacts from previous runs if exist.
@@ -272,7 +272,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
         fs::remove_dir_all(&dir)?;
     }
 
-    let inner_target_dir = path!(target_dir / "tests" / "macrotest");
+    let inner_target_dir = path!(target_dir / "tests" / "tryexpand");
 
     let mut project = Project {
         dir,
@@ -585,7 +585,7 @@ fn expand_globs(path: impl AsRef<Path>) -> Vec<ExpandedTest> {
     }
 
     fn bin_name(i: usize) -> Name {
-        Name(format!("macrotest{:03}", i))
+        Name(format!("tryexpand{:03}", i))
     }
 
     let mut vec = Vec::new();

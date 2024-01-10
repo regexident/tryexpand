@@ -34,7 +34,7 @@ impl std::fmt::Display for Error {
             PkgName => write!(f, "could not find CARGO_PKG_NAME env var"),
             UnrecognizedEnv(e) => write!(
                 f,
-                "unrecognized value of MACROTEST: \"{}\"",
+                "unrecognized value of tryexpand: \"{}\"",
                 e.to_string_lossy()
             ),
         }

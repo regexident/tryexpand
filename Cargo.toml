@@ -1,12 +1,11 @@
 [package]
-name = "macrotest"
+name = "tryexpand"
 version = "1.0.9" # remember to update in lib.rs
-authors = ["eupn <eupn@protonmail.com>"]
 edition = "2018"
 rust-version = "1.56"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/eupn/macrotest"
+repository = "https://github.com/regexident/tryexpand"
 description = "Test harness for macro expansion"
 
 [dependencies]
