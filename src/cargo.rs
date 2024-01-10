@@ -65,7 +65,7 @@ where
 
     let output = cargo
         .output()
-        .map_err(|e| Error::CargoExpandExecutionError(e.to_string()))?;
+        .map_err(|e| Error::CargoExpandExecution(e.to_string()))?;
 
     let status = output.status;
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
