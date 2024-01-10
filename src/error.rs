@@ -1,5 +1,7 @@
 use std::convert::From;
 
+use crate::TRYEXPAND_ENV_KEY;
+
 #[derive(Debug)]
 pub(crate) enum Error {
     Cargo(std::io::Error),
@@ -34,8 +36,9 @@ impl std::fmt::Display for Error {
             PkgName => write!(f, "could not find CARGO_PKG_NAME env var"),
             UnrecognizedEnv(e) => write!(
                 f,
-                "unrecognized value of tryexpand: \"{}\"",
-                e.to_string_lossy()
+                "unrecognized value of {key} env var: \"{}\"",
+                e.to_string_lossy(),
+                key = TRYEXPAND_ENV_KEY
             ),
         }
     }
