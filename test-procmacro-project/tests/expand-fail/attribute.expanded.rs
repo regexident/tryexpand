@@ -5,4 +5,3 @@ tests/expand-fail/attribute.rs:4:1
   | ^^^^^^^^^^^^^^^^^^^^^^
   |
   = help: message: test
-

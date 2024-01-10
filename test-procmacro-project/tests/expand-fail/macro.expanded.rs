@@ -5,4 +5,3 @@ tests/expand-fail/macro.rs:5:5
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = help: message: test
-

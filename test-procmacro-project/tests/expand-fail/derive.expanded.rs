@@ -5,4 +5,3 @@ tests/expand-fail/derive.rs:4:10
   |          ^^^^^^^^^^^^^^
   |
   = help: message: test
-

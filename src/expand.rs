@@ -496,9 +496,11 @@ fn normalize_expansion(input: &[u8], num_lines_to_skip: usize, project: &Project
     });
 
     let lines = prettyplease::unparse(&syntax_tree);
-    let lines = lines.trim_end_matches(['\n']);
-
-    format!("{}\n", lines)
+    if cfg!(windows) {
+        format!("{}\n\r", lines.trim_end_matches("\n\r"))
+    } else {
+        format!("{}\n", lines.trim_end_matches('\n'))
+    }
 }
 
 fn expand_globs(path: impl AsRef<Path>) -> Vec<ExpandedTest> {
