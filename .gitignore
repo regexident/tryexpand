@@ -51,7 +51,8 @@ Cargo.lock
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -194,3 +195,6 @@ fabric.properties
 .idea/**/azureSettings.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij
+
+# Some of our tests require this file to be absent:
+tests/**/tests/**/missing_expanded.expanded.rs

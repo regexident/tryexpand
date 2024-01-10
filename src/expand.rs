@@ -135,7 +135,7 @@ where
         .collect::<Vec<_>>();
 
     let len = tests.len();
-    println!("Running {} macro expansion tests", len);
+    println!("Running {} macro expansion tests ...!", len);
 
     let project = prepare(&tests).unwrap_or_else(|err| {
         panic!("prepare failed: {:#?}", err);

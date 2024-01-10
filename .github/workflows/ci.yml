@@ -30,7 +30,5 @@ jobs:
         if: matrix.rust != 'nightly'
 
       - run: cargo install cargo-expand
-
-      - run: cargo test --manifest-path test-project/Cargo.toml -- --nocapture
-
-      - run: cargo test --manifest-path test-procmacro-project/Cargo.toml -- --nocapture
+      - run: cargo test --manifest-path tests/macro-tests/Cargo.toml -- --nocapture --test-threads=1
+      - run: cargo test --manifest-path tests/proc-macro-tests/Cargo.toml -- --nocapture --test-threads=1
