@@ -1,5 +1,5 @@
 [package]
-name = "test_procmacro_project"
+name = "test-procmacro-project"
 version = "0.1.0"
 edition = "2018"
 
