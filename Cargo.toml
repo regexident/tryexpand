@@ -1,3 +1,7 @@
+[workspace]
+members = []
+exclude = ["./test-procmacro-project", "./test-project"]
+
 [package]
 name = "tryexpand"
 version = "1.0.9"                                      # remember to update in lib.rs
