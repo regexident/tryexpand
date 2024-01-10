@@ -1,8 +1,8 @@
 use std::{
     env,
     ffi::OsStr,
+    fmt::Write,
     fs,
-    io::Write,
     path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -15,8 +15,7 @@ use crate::{
     error::{Error, Result},
     features,
     manifest::{Bin, Build, Config, Manifest, Name, Package, Workspace},
-    message::{message_different, message_expansion_error},
-    rustflags,
+    message, rustflags, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
 /// An extension for files containing `cargo expand` result.
@@ -31,7 +30,7 @@ pub(crate) struct Project {
     pub name: String,
     pub features: Option<Vec<String>>,
     workspace: PathBuf,
-    overwrite: bool,
+    behavior: ExpansionBehavior,
 }
 
 /// This `Drop` implementation will clean up the temporary crates when expansion is finished.
@@ -59,12 +58,7 @@ impl Drop for Project {
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
 pub fn expand(path: impl AsRef<Path>) {
-    run_tests(
-        path,
-        ExpansionBehavior::RegenerateFiles,
-        Option::<Vec<String>>::None,
-        false,
-    );
+    run_tests(path, Option::<Vec<String>>::None, false);
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -78,12 +72,7 @@ pub fn expand(path: impl AsRef<Path>) {
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
 pub fn expand_fail(path: impl AsRef<Path>) {
-    run_tests(
-        path,
-        ExpansionBehavior::RegenerateFiles,
-        Option::<Vec<String>>::None,
-        true,
-    );
+    run_tests(path, Option::<Vec<String>>::None, true);
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
@@ -94,7 +83,7 @@ where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    run_tests(path, ExpansionBehavior::RegenerateFiles, Some(args), false);
+    run_tests(path, Some(args), false);
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
@@ -105,93 +94,25 @@ where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    run_tests(path, ExpansionBehavior::RegenerateFiles, Some(args), true);
+    run_tests(path, Some(args), true);
 }
 
-/// Attempts to expand macros in files that match glob pattern.
-/// More strict version of [`expand`] function.
-///
-/// # Refresh behavior
-///
-/// If no matching `.expanded.rs` files present, it's considered a failed test.
-///
-/// # Panics
-///
-/// Will panic if no matching `.expanded.rs` file is present. Otherwise it will exhibit the same
-/// behavior as in [`expand`].
-///
-/// [`expand`]: expand/fn.expand.html
-pub fn expand_without_refresh(path: impl AsRef<Path>) {
-    run_tests(
-        path,
-        ExpansionBehavior::ExpectFiles,
-        Option::<Vec<String>>::None,
-        false,
-    );
-}
-
-/// Attempts to expand macros in files that match glob pattern and expects a failure.
-/// More strict version of [`expand_fail`] function.
-///
-/// # Refresh behavior
-///
-/// If no matching `.expanded.rs` files present, it's considered a failed test.
-///
-/// # Panics
-///
-/// Will panic if no matching `.expanded.rs` file is present. Otherwise it will exhibit the same
-/// behavior as in [`expand_fail`].
-///
-/// [`expand_fail`]: expand/fn.expand_fail.html
-pub fn expand_without_refresh_fail(path: impl AsRef<Path>) {
-    run_tests(
-        path,
-        ExpansionBehavior::ExpectFiles,
-        Option::<Vec<String>>::None,
-        true,
-    );
-}
-
-/// Same as [`expand_without_refresh`] but allows to pass additional arguments to `cargo-expand`.
-///
-/// [`expand_without_refresh`]: expand/fn.expand_without_refresh.html
-pub fn expand_without_refresh_args<I, S>(path: impl AsRef<Path>, args: I)
-where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
-{
-    run_tests(path, ExpansionBehavior::ExpectFiles, Some(args), false);
-}
-
-/// Same as [`expand_without_refresh_fail`] but allows to pass additional arguments to `cargo-expand` and expects a failure.
-///
-/// [`expand_without_refresh_fail`]: expand/fn.expand_without_refresh_fail.html
-pub fn expand_without_refresh_args_fail<I, S>(path: impl AsRef<Path>, args: I)
-where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
-{
-    run_tests(path, ExpansionBehavior::ExpectFiles, Some(args), true);
-}
-
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum ExpansionBehavior {
-    RegenerateFiles,
+    OverwriteFiles,
     ExpectFiles,
 }
 
-fn run_tests<I, S>(
-    path: impl AsRef<Path>,
-    expansion_behavior: ExpansionBehavior,
-    args: Option<I>,
-    expect_fail: bool,
-) where
+fn run_tests<I, S>(path: impl AsRef<Path>, args: Option<I>, expect_fail: bool)
+where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
+    eprintln!("expect_fail: {expect_fail}");
+
     let tests = expand_globs(&path)
         .into_iter()
-        .filter(|t| !t.test.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
+        .filter(|t| !t.path.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
         .collect::<Vec<_>>();
 
     let len = tests.len();
@@ -201,58 +122,82 @@ fn run_tests<I, S>(
         panic!("prepare failed: {:#?}", err);
     });
 
-    let mut failures = 0;
+    let mut failures = vec![];
+
     for test in tests {
-        let path = test.test.display();
-        let expanded_path = test.test.with_extension(EXPANDED_RS_SUFFIX);
+        let path = test.path.as_path();
+        let expanded_path = test.expanded_path.as_path();
 
-        match test.run(&project, expansion_behavior, &args) {
-            Ok(ExpansionOutcome { error, outcome }) => {
-                if let Some(msg) = error {
-                    if !expect_fail {
-                        message_expansion_error(msg);
-                        failures += 1;
+        let outcome = match test.run(&project, &args) {
+            Ok(outcome) => outcome,
+            Err(err) => {
+                eprintln!("Error: {err:#?}");
+                failures.push(path.to_owned());
+                continue;
+            }
+        };
 
-                        continue;
-                    }
-                }
+        let ExpansionOutcome { error, outcome } = outcome;
 
-                match outcome {
-                    ExpansionOutcomeKind::Same => {
-                        let _ = writeln!(std::io::stdout(), "{} - ok", path);
-                    }
+        if let Some(msg) = error.as_ref() {
+            if !expect_fail {
+                let msg = String::from_utf8_lossy(msg);
+                message::unexpected_failure(path, expanded_path, &msg);
+                failures.push(path.to_owned());
 
-                    ExpansionOutcomeKind::Different(a, b) => {
-                        message_different(&path.to_string(), &a, &b);
-                        failures += 1;
-                    }
+                continue;
+            }
+        }
 
-                    ExpansionOutcomeKind::Update(_) => {
-                        let _ =
-                            writeln!(std::io::stderr(), "{} - refreshed", expanded_path.display());
-                    }
-
-                    ExpansionOutcomeKind::NoExpandedFileFound => {
-                        let _ = writeln!(
-                            std::io::stderr(),
-                            "{} is expected but not found",
-                            expanded_path.display()
-                        );
-                        failures += 1;
-                    }
+        match outcome {
+            ExpansionOutcomeKind::Same => {
+                if expect_fail && error.is_none() {
+                    message::expected_failure(path, expanded_path);
+                } else {
+                    message::ok(path, expanded_path);
                 }
             }
-
-            Err(e) => {
-                eprintln!("Error: {:#?}", e);
-                failures += 1;
+            ExpansionOutcomeKind::Different(a, b) => {
+                message::mismatch(path, expanded_path, &a, &b);
+                failures.push(path.to_owned());
+            }
+            ExpansionOutcomeKind::Create(_) => {
+                message::created(path, expanded_path);
+            }
+            ExpansionOutcomeKind::Update(_) => {
+                message::updated(path, expanded_path);
+            }
+            ExpansionOutcomeKind::NoExpandedFileFound => {
+                message::missing(path, expanded_path);
+                failures.push(path.to_owned());
             }
         }
     }
 
-    if failures > 0 {
-        eprintln!("\n\n");
-        panic!("{} of {} tests failed", failures, len);
+    if !failures.is_empty() {
+        let mut message = String::new();
+
+        writeln!(&mut message).unwrap();
+        writeln!(&mut message, "{} of {} tests failed:", failures.len(), len).unwrap();
+        writeln!(&mut message).unwrap();
+
+        for failure in failures {
+            writeln!(&mut message, "- {}", failure.display()).unwrap();
+        }
+
+        panic!("{}", message);
+    }
+}
+
+fn expansion_behavior() -> Result<ExpansionBehavior> {
+    let Some(var) = std::env::var_os(TRYEXPAND_ENV_KEY) else {
+        return Ok(ExpansionBehavior::ExpectFiles);
+    };
+
+    match var.as_os_str().to_string_lossy().as_ref() {
+        TRYEXPAND_ENV_VAL_EXPECT => Ok(ExpansionBehavior::ExpectFiles),
+        TRYEXPAND_ENV_VAL_OVERWRITE => Ok(ExpansionBehavior::OverwriteFiles),
+        _ => Err(Error::UnrecognizedEnv(var)),
     }
 }
 
@@ -268,12 +213,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
         .ok_or(Error::ManifestDirError)?;
 
     let features = features::find();
-
-    let overwrite = match env::var_os("tryexpand") {
-        Some(ref v) if v == "overwrite" => true,
-        Some(v) => return Err(Error::UnrecognizedEnv(v)),
-        None => false,
-    };
+    let behavior = expansion_behavior()?;
 
     static COUNT: AtomicUsize = AtomicUsize::new(0);
     // Use unique string for the crate dir to
@@ -296,7 +236,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
         name: format!("{}-tests", crate_name),
         features,
         workspace,
-        overwrite,
+        behavior,
     };
 
     let manifest = make_manifest(crate_name, &project, tests)?;
@@ -379,7 +319,7 @@ fn make_manifest(
         if expanded.error.is_none() {
             manifest.bins.push(Bin {
                 name: expanded.name.clone(),
-                path: project.source_dir.join(&expanded.test),
+                path: project.source_dir.join(&expanded.path),
             });
         }
     }
@@ -396,7 +336,7 @@ fn make_config() -> Config {
 }
 
 #[derive(Debug)]
-struct ExpansionOutcome {
+pub(crate) struct ExpansionOutcome {
     error: Option<Vec<u8>>,
     outcome: ExpansionOutcomeKind,
 }
@@ -408,26 +348,23 @@ impl ExpansionOutcome {
 }
 
 #[derive(Debug)]
-enum ExpansionOutcomeKind {
+pub(crate) enum ExpansionOutcomeKind {
     Same,
     Different(Vec<u8>, Vec<u8>),
+    Create(Vec<u8>),
     Update(Vec<u8>),
     NoExpandedFileFound,
 }
 
 struct ExpandedTest {
     name: Name,
-    test: PathBuf,
+    path: PathBuf,
+    expanded_path: PathBuf,
     error: Option<Error>,
 }
 
 impl ExpandedTest {
-    pub fn run<I, S>(
-        &self,
-        project: &Project,
-        expansion_behavior: ExpansionBehavior,
-        args: &Option<I>,
-    ) -> Result<ExpansionOutcome>
+    pub fn run<I, S>(&self, project: &Project, args: &Option<I>) -> Result<ExpansionOutcome>
     where
         I: IntoIterator<Item = S> + Clone,
         S: AsRef<OsStr>,
@@ -440,15 +377,7 @@ impl ExpandedTest {
             Some(output_bytes.clone())
         };
 
-        let file_stem = self
-            .test
-            .file_stem()
-            .expect("no file stem")
-            .to_string_lossy()
-            .into_owned();
-        let mut expanded = self.test.clone();
-        expanded.pop();
-        let expanded = &expanded.join(format!("{}.{}", file_stem, EXPANDED_RS_SUFFIX));
+        let should_overwrite = project.behavior == ExpansionBehavior::OverwriteFiles;
 
         let output = if success {
             normalize_expansion(&output_bytes, CARGO_EXPAND_SKIP_LINES_COUNT, project)
@@ -456,57 +385,39 @@ impl ExpandedTest {
             normalize_expansion(&output_bytes, CARGO_EXPAND_ERROR_SKIP_LINES_COUNT, project)
         };
 
-        if !expanded.exists() {
-            if let ExpansionBehavior::ExpectFiles = expansion_behavior {
-                return Ok(ExpansionOutcome::new(
-                    error,
-                    ExpansionOutcomeKind::NoExpandedFileFound,
-                ));
-            }
+        let expanded_path = self.expanded_path.as_path();
 
-            // Write a .expanded.rs file contents with an newline character at the end
-            std::fs::write(expanded, output)?;
+        if !expanded_path.exists() {
+            let outcome = if should_overwrite {
+                // Write a .expanded.rs file contents with an newline character at the end
+                std::fs::write(expanded_path, output)?;
 
-            return Ok(ExpansionOutcome::new(
-                error,
-                ExpansionOutcomeKind::Update(output_bytes),
-            ));
+                ExpansionOutcomeKind::Create(output_bytes)
+            } else {
+                ExpansionOutcomeKind::NoExpandedFileFound
+            };
+            return Ok(ExpansionOutcome::new(error, outcome));
         }
 
-        let expected_expansion_bytes = std::fs::read(expanded)?;
+        let expected_expansion_bytes = std::fs::read(expanded_path)?;
         let expected_expansion = String::from_utf8_lossy(&expected_expansion_bytes);
 
-        let same = output
-            .trim_end_matches(['\n', '\r'])
-            .lines()
-            .eq(expected_expansion.trim_end_matches(['\n', '\r']).lines());
+        let is_same = output.lines().eq(expected_expansion.lines());
 
-        if !same && project.overwrite {
-            if let ExpansionBehavior::ExpectFiles = expansion_behavior {
-                return Ok(ExpansionOutcome::new(
-                    error,
-                    ExpansionOutcomeKind::NoExpandedFileFound,
-                ));
-            }
+        if !is_same {
+            let outcome = if should_overwrite {
+                // Write a .expanded.rs file contents with an newline character at the end
+                std::fs::write(expanded_path, output)?;
 
-            // Write a .expanded.rs file contents with an newline character at the end
-            std::fs::write(expanded, output)?;
-
-            return Ok(ExpansionOutcome::new(
-                error,
-                ExpansionOutcomeKind::Update(output_bytes),
-            ));
+                ExpansionOutcomeKind::Update(output_bytes)
+            } else {
+                let output_bytes = output.into_bytes(); // Use normalized text for a message
+                ExpansionOutcomeKind::Different(expected_expansion_bytes, output_bytes)
+            };
+            return Ok(ExpansionOutcome::new(error, outcome));
         }
 
-        Ok(if same {
-            ExpansionOutcome::new(error, ExpansionOutcomeKind::Same)
-        } else {
-            let output_bytes = output.into_bytes(); // Use normalized text for a message
-            ExpansionOutcome::new(
-                error,
-                ExpansionOutcomeKind::Different(expected_expansion_bytes, output_bytes),
-            )
-        })
+        Ok(ExpansionOutcome::new(error, ExpansionOutcomeKind::Same))
     }
 }
 
@@ -585,15 +496,14 @@ fn normalize_expansion(input: &[u8], num_lines_to_skip: usize, project: &Project
     });
 
     let lines = prettyplease::unparse(&syntax_tree);
+    let lines = lines.trim_end_matches(['\n']);
 
-    if !lines.ends_with("\n\n") {
-        format!("{}\n", lines)
-    } else {
-        lines
-    }
+    format!("{}\n", lines)
 }
 
 fn expand_globs(path: impl AsRef<Path>) -> Vec<ExpandedTest> {
+    let path = path.as_ref();
+
     fn glob(pattern: &str) -> Result<Vec<PathBuf>> {
         let mut paths = glob::glob(pattern)?
             .map(|entry| entry.map_err(Error::from))
@@ -609,34 +519,37 @@ fn expand_globs(path: impl AsRef<Path>) -> Vec<ExpandedTest> {
     let mut vec = Vec::new();
 
     let name = path
-        .as_ref()
         .file_stem()
         .expect("no file stem")
         .to_string_lossy()
         .to_string();
+
     let mut expanded = ExpandedTest {
         name: Name(name),
-        test: path.as_ref().to_path_buf(),
+        path: path.to_path_buf(),
+        expanded_path: path.with_extension(EXPANDED_RS_SUFFIX),
         error: None,
     };
 
-    if let Some(utf8) = path.as_ref().to_str() {
-        if utf8.contains('*') {
-            match glob(utf8) {
-                Ok(paths) => {
-                    for path in paths {
-                        vec.push(ExpandedTest {
-                            name: bin_name(vec.len()),
-                            test: path,
-                            error: None,
-                        });
-                    }
+    let path_string = path.as_os_str().to_string_lossy();
+
+    if path_string.contains('*') {
+        match glob(&path_string) {
+            Ok(paths) => {
+                for path in paths {
+                    let expanded_path = path.with_extension(EXPANDED_RS_SUFFIX);
+                    vec.push(ExpandedTest {
+                        name: bin_name(vec.len()),
+                        path,
+                        expanded_path,
+                        error: None,
+                    });
                 }
-                Err(error) => expanded.error = Some(error),
             }
-        } else {
-            vec.push(expanded);
+            Err(error) => expanded.error = Some(error),
         }
+    } else {
+        vec.push(expanded);
     }
 
     vec
