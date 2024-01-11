@@ -57,6 +57,7 @@ impl Drop for Project {
 /// # Panics
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
+#[track_caller]
 pub fn expand(path: impl AsRef<Path>) {
     run_tests(path, Option::<Vec<String>>::None, Expectation::Success);
 }
@@ -71,6 +72,7 @@ pub fn expand(path: impl AsRef<Path>) {
 /// # Panics
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
+#[track_caller]
 pub fn expand_fail(path: impl AsRef<Path>) {
     run_tests(path, Option::<Vec<String>>::None, Expectation::Failure);
 }
@@ -78,6 +80,7 @@ pub fn expand_fail(path: impl AsRef<Path>) {
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand`]: expand/fn.expand.html
+#[track_caller]
 pub fn expand_args<I, S>(path: impl AsRef<Path>, args: I)
 where
     I: IntoIterator<Item = S> + Clone,
@@ -89,6 +92,7 @@ where
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand_fail`]: expand/fn.expand_fail.html
+#[track_caller]
 pub fn expand_args_fail<I, S>(path: impl AsRef<Path>, args: I)
 where
     I: IntoIterator<Item = S> + Clone,
@@ -103,6 +107,7 @@ enum ExpansionBehavior {
     ExpectFiles,
 }
 
+#[track_caller]
 fn run_tests<I, S>(path: impl AsRef<Path>, args: Option<I>, expectation: Expectation)
 where
     I: IntoIterator<Item = S> + Clone,
@@ -114,6 +119,7 @@ where
     }
 }
 
+#[track_caller]
 fn try_run_tests<I, S>(
     path: impl AsRef<Path>,
     args: Option<I>,
