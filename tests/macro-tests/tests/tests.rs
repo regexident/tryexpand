@@ -33,7 +33,7 @@ mod expand_args {
     pub fn pass() {
         tryexpand::expand_args(
             ["tests/expand_args/pass/*.rs"],
-            &["--features", "test-feature"],
+            ["--features", "test-feature"],
         );
     }
 
@@ -42,7 +42,7 @@ mod expand_args {
     pub fn fail() {
         tryexpand::expand_args(
             ["tests/expand_args/fail/*.rs"],
-            &["--features", "placebo-test-feature"],
+            ["--features", "placebo-test-feature"],
         );
     }
 }
@@ -53,7 +53,7 @@ mod expand_args_fail {
     pub fn pass() {
         tryexpand::expand_args_fail(
             ["tests/expand_args/pass/*.rs"],
-            &["--features", "test-feature"],
+            ["--features", "test-feature"],
         );
     }
 
@@ -61,7 +61,7 @@ mod expand_args_fail {
     pub fn fail() {
         tryexpand::expand_args_fail(
             ["tests/expand_args/fail/*.rs"],
-            &["--features", "placebo-test-feature"],
+            ["--features", "placebo-test-feature"],
         );
     }
 }
