@@ -108,9 +108,6 @@
 
 pub use self::expand::{expand, expand_args, expand_args_fail, expand_fail};
 
-#[macro_use]
-mod path;
-
 mod cargo;
 mod dependencies;
 mod error;
