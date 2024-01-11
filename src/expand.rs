@@ -239,7 +239,10 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
     // Use unique string for the crate dir to
     // prevent conflicts when running parallel tests.
     let unique_string: String = format!("tryexpand{:03}", COUNT.fetch_add(1, Ordering::SeqCst));
-    let dir = path!(target_dir / "tests" / crate_name / unique_string);
+    let dir = target_dir
+        .join("tests")
+        .join(&crate_name)
+        .join(unique_string);
     if dir.exists() {
         // Remove remaining artifacts from previous runs if exist.
         // For example, if the user stops the test with Ctrl-C during a previous
@@ -247,7 +250,7 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
         fs::remove_dir_all(&dir)?;
     }
 
-    let inner_target_dir = path!(target_dir / "tests" / "tryexpand");
+    let inner_target_dir = target_dir.join("tests").join("tryexpand");
 
     let mut project = Project {
         dir,
@@ -269,10 +272,10 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
         enabled_features.retain(|feature| manifest.features.contains_key(feature));
     }
 
-    fs::create_dir_all(path!(project.dir / ".cargo"))?;
-    fs::write(path!(project.dir / ".cargo" / "config"), config_toml)?;
-    fs::write(path!(project.dir / "Cargo.toml"), manifest_toml)?;
-    fs::write(path!(project.dir / "main.rs"), b"fn main() {}\n")?;
+    fs::create_dir_all(project.dir.join(".cargo"))?;
+    fs::write(project.dir.join(".cargo").join("config"), config_toml)?;
+    fs::write(project.dir.join("Cargo.toml"), manifest_toml)?;
+    fs::write(project.dir.join("main.rs"), b"fn main() {}\n")?;
 
     fs::create_dir_all(&project.inner_target_dir)?;
 
