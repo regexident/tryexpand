@@ -2,7 +2,36 @@ use std::path::Path;
 
 use yansi::Paint;
 
-use crate::{TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
+use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
+
+pub(crate) fn report_outcome(path: &Path, expanded_path: &Path, outcome: &TestOutcome) {
+    match outcome {
+        TestOutcome::SnapshotMatch => {
+            ok(path, expanded_path);
+        }
+        TestOutcome::SnapshotMismatch { actual, expected } => {
+            snapshot_mismatch(path, expanded_path, expected, actual);
+        }
+        TestOutcome::SnapshotCreated { after } => {
+            snapshot_created(path, expanded_path, after);
+        }
+        TestOutcome::SnapshotUpdated { before, after } => {
+            snapshot_updated(path, expanded_path, before, after);
+        }
+        TestOutcome::SnapshotMissing => {
+            snapshot_missing(path, expanded_path);
+        }
+        TestOutcome::UnexpectedSuccess { output } => {
+            unexpected_success(path, expanded_path, output);
+        }
+        TestOutcome::UnexpectedFailure { output } => {
+            unexpected_failure(path, expanded_path, output);
+        }
+        TestOutcome::CommandFailure { output } => {
+            command_failure(path, expanded_path, output);
+        }
+    }
+}
 
 pub(crate) fn ok(path: &Path, _expanded_path: &Path) {
     eprintln!("{path} - {}", Paint::green("ok"), path = path.display());
@@ -112,6 +141,17 @@ pub(crate) fn unexpected_failure(path: &Path, _expanded_path: &Path, output: &st
     eprintln!();
     eprintln!("{}", Paint::red(output.trim()));
 
+    eprintln!("--------------------------");
+}
+
+pub(crate) fn command_failure(path: &Path, _expanded_path: &Path, output: &str) {
+    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("--------------------------");
+
+    eprintln!("{}", Paint::red("Command failure:"));
+    eprintln!();
+    eprintln!("{}", Paint::red(output.trim()));
+
     // No `cargo expand` subcommand installed, make a suggestion
     if output.contains("no such subcommand: `expand`") {
         eprintln!(
@@ -121,18 +161,6 @@ pub(crate) fn unexpected_failure(path: &Path, _expanded_path: &Path, output: &st
         eprintln!("{}", Paint::cyan("      Install it by running:"));
         eprintln!();
         eprintln!("{}", Paint::cyan("      $ cargo install cargo-expand"));
-        eprintln!();
-    }
-
-    // No nightly installed, make a suggestion
-    if output.starts_with("error: toolchain '") && output.ends_with("is not installed") {
-        eprintln!("{}", Paint::cyan("help: You have `cargo expand` installed but it requires *nightly* compiler to be installed as well."));
-        eprintln!("{}", Paint::cyan("      To install it via rustup, run:"));
-        eprintln!();
-        eprintln!(
-            "{}",
-            Paint::cyan("      $ rustup toolchain install nightly")
-        );
         eprintln!();
     }
 

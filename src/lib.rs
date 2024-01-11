@@ -111,17 +111,20 @@ use std::{ffi::OsStr, path::Path};
 mod cargo;
 mod dependencies;
 mod error;
-mod expand;
+mod expansion;
 mod features;
 mod manifest;
 mod message;
+mod project;
+mod run;
 mod rustflags;
+mod test;
 
 pub(crate) const TRYEXPAND_ENV_KEY: &str = "TRYEXPAND";
 pub(crate) const TRYEXPAND_ENV_VAL_OVERWRITE: &str = "overwrite";
 pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 
-use self::expand::{try_run_tests, Expectation};
+use self::{project::Project, run::try_run_tests, test::TestExpectation};
 
 /// Attempts to expand macros in files that match glob pattern.
 ///
@@ -139,7 +142,7 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    expand::run_tests!(paths, Option::<Vec<String>>::None, Expectation::Success);
+    run::run_tests!(paths, Option::<Vec<String>>::None, TestExpectation::Success);
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -158,7 +161,7 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    expand::run_tests!(paths, Option::<Vec<String>>::None, Expectation::Failure);
+    run::run_tests!(paths, Option::<Vec<String>>::None, TestExpectation::Failure);
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
@@ -172,7 +175,7 @@ where
     Ia: IntoIterator<Item = A> + Clone,
     A: AsRef<OsStr>,
 {
-    expand::run_tests!(paths, Some(args), Expectation::Success);
+    run::run_tests!(paths, Some(args), TestExpectation::Success);
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
@@ -186,5 +189,5 @@ where
     Ia: IntoIterator<Item = A> + Clone,
     A: AsRef<OsStr>,
 {
-    expand::run_tests!(paths, Some(args), Expectation::Failure);
+    run::run_tests!(paths, Some(args), TestExpectation::Failure);
 }

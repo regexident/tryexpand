@@ -7,7 +7,8 @@ use serde::Deserialize;
 
 use crate::{
     error::{Error, Result},
-    expand::Project,
+    manifest::{Build, Config},
+    project::Project,
     rustflags,
 };
 
@@ -37,6 +38,14 @@ pub(crate) fn metadata() -> Result<Metadata> {
         .map_err(Error::Cargo)?;
 
     serde_json::from_slice(&output.stdout).map_err(Error::CargoMetadata)
+}
+
+pub(crate) fn make_config() -> Config {
+    Config {
+        build: Build {
+            rustflags: rustflags::make_vec(),
+        },
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
