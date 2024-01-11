@@ -10,7 +10,7 @@ rust-version = "1.70"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/regexident/tryexpand"
-authors = ["eupn <eupn@protonmail.com>"]
+authors = ["Vincent Esche <regexident@gmail.com>", "eupn <eupn@protonmail.com>"]
 description = "Test harness for macro expansion"
 
 [dependencies]
