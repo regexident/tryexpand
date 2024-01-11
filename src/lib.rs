@@ -46,7 +46,7 @@
 //!
 //! ```rust
 //! pub fn pass() {
-//!     tryexpand::expand_args("tests/expand/*.rs", &["--features", "my-feature"]);
+//!     tryexpand::expand_args(["tests/expand/*.rs"], ["--features", "my-feature"]);
 //! }
 //! ```
 //!
@@ -64,8 +64,6 @@
 //! cargo install cargo-expand
 //! ```
 //!
-//! A **nightly** compiler is required for this tool to work, so it must be installed as well.
-//!
 //! ## Setting up a test project
 //!
 //! In your crate that provides procedural or declarative macros, under the `tests` directory,
@@ -77,7 +75,7 @@
 //! ```rust
 //! #[test]
 //! pub fn pass() {
-//!     tryexpand::expand("tests/expand/*.rs");
+//!     tryexpand::expand(["tests/expand/*.rs"]);
 //! }
 //! ```
 //!
