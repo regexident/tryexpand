@@ -1,35 +1,11 @@
+use std::borrow::Cow;
+
 use syn::{punctuated::Punctuated, Item, Meta, Token};
 
 use crate::project::Project;
 
-// `cargo expand` does always produce some fixed amount of lines that should be ignored
-const STDOUT_SKIP_LINES_COUNT: usize = 5;
-const STDERR_SKIP_LINES_COUNT: usize = 1;
-
-pub(crate) fn normalize_stdout_expansion(input: &str, project: &Project) -> String {
-    normalize_expansion(input, STDOUT_SKIP_LINES_COUNT, project)
-}
-
-pub(crate) fn normalize_stderr_expansion(input: &str, project: &Project) -> String {
-    normalize_expansion(input, STDERR_SKIP_LINES_COUNT, project)
-}
-
-/// Removes specified number of lines and removes some unnecessary or non-deterministic cargo output
-fn normalize_expansion(input: &str, num_lines_to_skip: usize, project: &Project) -> String {
-    // These prefixes are non-deterministic and project-dependent
-    // These prefixes or the whole line shall be removed
-    let project_path_prefix = format!(" --> {}/", project.source_dir.to_string_lossy());
-    let proj_name_prefix = format!("    Checking {} v0.0.0", project.name);
-    let blocking_prefix = "    Blocking waiting for file lock on package cache";
-
-    let lines = input
-        .lines()
-        .skip(num_lines_to_skip)
-        .filter(|line| !line.starts_with(&proj_name_prefix))
-        .map(|line| line.strip_prefix(&project_path_prefix).unwrap_or(line))
-        .map(|line| line.strip_prefix(blocking_prefix).unwrap_or(line))
-        .collect::<Vec<_>>()
-        .join("\n");
+pub(crate) fn normalize_stdout_expansion(input: &str) -> String {
+    let lines = input.lines().collect::<Vec<_>>().join("\n");
 
     let mut syntax_tree = match syn::parse_file(&lines) {
         Ok(syntax_tree) => syntax_tree,
@@ -84,9 +60,25 @@ fn normalize_expansion(input: &str, num_lines_to_skip: usize, project: &Project)
     });
 
     let lines = prettyplease::unparse(&syntax_tree);
-    if cfg!(windows) {
-        format!("{}\n\r", lines.trim_end_matches("\n\r"))
-    } else {
-        format!("{}\n", lines.trim_end_matches('\n'))
-    }
+
+    format!("{}\n", lines.trim_end_matches('\n'))
+}
+
+pub(crate) fn normalize_stderr_expansion(input: &str, project: &Project) -> String {
+    let manifest_dir_path = project.manifest_dir.to_string_lossy();
+
+    let lines = input
+        .lines()
+        .skip_while(|line| !line.starts_with("error: "))
+        .map(|line| {
+            if line.starts_with(" --> ") {
+                Cow::from(line.replace(manifest_dir_path.as_ref(), ""))
+            } else {
+                Cow::from(line)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    format!("{}\n", lines.trim_end_matches('\n'))
 }

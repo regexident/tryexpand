@@ -64,9 +64,6 @@ where
         cargo.args(args.clone());
     }
 
-    let all_args: Vec<_> = cargo.get_args().map(|s| s.to_string_lossy()).collect();
-    eprintln!("🔴 cargo {}", all_args.join(" "));
-
     let output = cargo
         .output()
         .map_err(|err| Error::CargoExpandExecution(err.to_string()))?;
@@ -77,7 +74,7 @@ where
     let stdout = process_stdout(&output.stdout);
     let (stderr, has_errors) = process_stderr(&output.stderr, name, bin);
 
-    let is_success = status.success() && !output.stdout.is_empty() && !has_errors;
+    let is_success = status.success() && !stdout.is_empty() && !has_errors;
 
     if is_success {
         Ok(Expansion::Success { stdout })
@@ -98,7 +95,7 @@ fn process_stderr(bytes: &[u8], name: &str, bin: &str) -> (String, bool) {
 
     let lines: Vec<Cow<'_, str>> = stderr
         .lines()
-        .inspect(|line| {
+        .inspect(|&line| {
             // Sometimes the `cargo expand` command returns a success status,
             // despite an error having occurred, so we need to look for those:
             has_errors |= line.starts_with("error: ");
@@ -113,7 +110,11 @@ fn process_stderr(bytes: &[u8], name: &str, bin: &str) -> (String, bool) {
         })
         .collect();
 
-    let lines: Vec<&str> = lines.iter().map(|line| line.as_ref()).collect();
+    let lines: Vec<&str> = lines
+        .iter()
+        .map(|line| line.as_ref())
+        .skip_while(|line| line.trim().is_empty())
+        .collect();
 
     let stderr = lines.join("\n");
     (stderr, has_errors)

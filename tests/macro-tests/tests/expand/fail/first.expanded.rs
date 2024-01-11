@@ -1,5 +1,5 @@
 error: expected item, found `1234`
-tests/expand/fail/first.rs:1:1
+ --> /tests/expand/fail/first.rs:1:1
   |
 1 | 1234
   | ^^^^ expected item

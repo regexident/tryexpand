@@ -20,7 +20,7 @@ const EXPANDED_RS_SUFFIX: &str = "expanded.rs";
 #[derive(Debug)]
 pub(crate) struct Project {
     pub dir: PathBuf,
-    pub source_dir: PathBuf,
+    pub manifest_dir: PathBuf,
     /// Used for the inner runs of cargo()
     pub inner_target_dir: PathBuf,
     pub name: String,
@@ -42,7 +42,7 @@ where
     let target_dir = env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("./target"));
-    let source_dir = env::var_os("CARGO_MANIFEST_DIR")
+    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")
         .map(PathBuf::from)
         .ok_or(Error::CargoManifestDir)?;
 
@@ -80,7 +80,7 @@ where
 
     let project = Project {
         dir,
-        source_dir,
+        manifest_dir,
         inner_target_dir,
         name,
         tests,

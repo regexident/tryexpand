@@ -82,9 +82,7 @@ impl Test {
         let expansion = cargo::expand(project, &self.bin, args)?;
 
         let actual = match &expansion {
-            cargo::Expansion::Success { stdout } => {
-                normalize_stdout_expansion(stdout.as_str(), project)
-            }
+            cargo::Expansion::Success { stdout } => normalize_stdout_expansion(stdout.as_str()),
             cargo::Expansion::Failure { stderr } => {
                 normalize_stderr_expansion(stderr.as_str(), project)
             }

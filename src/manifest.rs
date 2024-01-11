@@ -23,7 +23,7 @@ pub(crate) fn cargo_manifest(
 
     let mut dependencies = BTreeMap::default();
 
-    let dependency_path = project.source_dir.display().to_string();
+    let dependency_path = project.manifest_dir.display().to_string();
     let mut dependency = DependencyDetail::default();
     dependency.path = Some(dependency_path);
     dependency.default_features = true;
