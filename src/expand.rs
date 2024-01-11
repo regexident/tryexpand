@@ -36,93 +36,28 @@ pub(crate) struct Project {
     tests: Vec<ExpandedTest>,
 }
 
-macro_rules! test_suite_id_based_on_caller_location {
-    () => {{
-        let caller_location = std::panic::Location::caller();
-
-        let mut hasher = DefaultHasher::default();
-        caller_location.file().hash(&mut hasher);
-        caller_location.line().hash(&mut hasher);
-        caller_location.column().hash(&mut hasher);
-        base62::encode(hasher.finish())
-    }};
-}
-
 macro_rules! run_tests {
     ($paths:expr, $args:expr, $expectation:expr) => {
         // IMPORTANT: This only works as lone as all functions between
         // the public API and this call are marked with `#[track_caller]`:
-        let test_suite_id = test_suite_id_based_on_caller_location!();
+        let caller_location = ::std::panic::Location::caller();
 
-        run_tests($paths, $args, &test_suite_id, $expectation);
+        use std::hash::{Hash as _, Hasher as _};
+
+        let mut hasher = ::std::collections::hash_map::DefaultHasher::default();
+        caller_location.file().hash(&mut hasher);
+        caller_location.line().hash(&mut hasher);
+        caller_location.column().hash(&mut hasher);
+        let test_suite_id = ::base62::encode(hasher.finish());
+
+        match $crate::try_run_tests($paths, $args, &test_suite_id, $expectation) {
+            Ok(()) => {}
+            Err(err) => panic!("{}", err),
+        }
     };
 }
 
-/// Attempts to expand macros in files that match glob pattern.
-///
-/// # Refresh behavior
-///
-/// If no matching `.expanded.rs` files present, they will be created and result of expansion
-/// will be written into them.
-///
-/// # Panics
-///
-/// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand<I, P>(paths: I)
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    run_tests!(paths, Option::<Vec<String>>::None, Expectation::Success);
-}
-
-/// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
-///
-/// # Refresh behavior
-///
-/// If no matching `.expanded.rs` files present, they will be created and result (error) of expansion
-/// will be written into them.
-///
-/// # Panics
-///
-/// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_fail<I, P>(paths: I)
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    run_tests!(paths, Option::<Vec<String>>::None, Expectation::Failure);
-}
-
-/// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
-///
-/// [`expand`]: expand/fn.expand.html
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args<Ip, P, Ia, A>(paths: Ip, args: Ia)
-where
-    Ip: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
-{
-    run_tests!(paths, Some(args), Expectation::Success);
-}
-
-/// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
-///
-/// [`expand_fail`]: expand/fn.expand_fail.html
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args_fail<Ip, P, Ia, A>(paths: Ip, args: Ia)
-where
-    Ip: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
-{
-    run_tests!(paths, Some(args), Expectation::Failure);
-}
+pub(crate) use run_tests;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum ExpansionBehavior {
@@ -131,25 +66,7 @@ enum ExpansionBehavior {
 }
 
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-fn run_tests<Ip, P, Ia, A>(
-    paths: Ip,
-    args: Option<Ia>,
-    test_suite_id: &str,
-    expectation: Expectation,
-) where
-    Ip: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
-{
-    match try_run_tests(paths, args, test_suite_id, expectation) {
-        Ok(()) => {}
-        Err(err) => panic!("{}", err),
-    }
-}
-
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-fn try_run_tests<Ip, P, Ia, A>(
+pub(crate) fn try_run_tests<Ip, P, Ia, A>(
     paths: Ip,
     args: Option<Ia>,
     test_suite_id: &str,
