@@ -194,7 +194,7 @@ where
         writeln!(&mut message).unwrap();
 
         for failure in failures {
-            writeln!(&mut message, "- {}", failure.display()).unwrap();
+            writeln!(&mut message, "    {}", failure.display()).unwrap();
         }
 
         panic!("{}", message);

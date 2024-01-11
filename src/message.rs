@@ -1,19 +1,14 @@
 use std::path::Path;
+
 use yansi::Paint;
 
 use crate::{TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
 
-/// Prints the difference of the two snippets of expanded code.
-pub(crate) fn mismatch(path: &Path, expanded_path: &Path, a: &[u8], b: &[u8]) {
-    let a = String::from_utf8_lossy(a);
-    let b = String::from_utf8_lossy(b);
+pub(crate) fn ok(path: &Path, _expanded_path: &Path) {
+    eprintln!("{path} - {}", Paint::green("ok"), path = path.display());
+}
 
-    let diff_lines = diff::lines(&a, &b);
-
-    let diff_runs = DiffRunsIterator::from(diff_lines.into_iter());
-
-    const NUM_CONTEXT_LINES: usize = 2;
-
+pub(crate) fn snapshot_mismatch(path: &Path, expanded_path: &Path, expected: &str, actual: &str) {
     eprintln!("{path} - {}", Paint::red("MISMATCH"), path = path.display());
     eprintln!("--------------------------");
     eprintln!(
@@ -22,94 +17,15 @@ pub(crate) fn mismatch(path: &Path, expanded_path: &Path, a: &[u8], b: &[u8]) {
     );
     eprintln!();
 
-    for diff_run in diff_runs {
-        let run_len = diff_run.len();
-        for (index, change) in diff_run.into_iter().enumerate() {
-            match change {
-                diff::Result::Left(lhs) => {
-                    eprintln!("{}", Paint::red(format!("- {lhs}")));
-                }
-                diff::Result::Both(both, _) => {
-                    if index < NUM_CONTEXT_LINES {
-                        eprintln!("{}", Paint::blue(format!("  {both}")));
-                    } else if index == NUM_CONTEXT_LINES {
-                        if run_len > (2 * NUM_CONTEXT_LINES) {
-                            eprintln!("{}", Paint::blue("  ..."));
-                        } else {
-                            eprintln!("{}", Paint::blue(format!("  {both}")));
-                        }
-                    } else if (run_len - index) <= NUM_CONTEXT_LINES {
-                        eprintln!("{}", Paint::blue(format!("  {both}")));
-                    }
-                }
-                diff::Result::Right(rhs) => {
-                    eprintln!("{}", Paint::green(format!("+ {rhs}")));
-                }
-            }
-        }
-    }
+    const NUM_CONTEXT_LINES: usize = 2;
 
-    eprintln!("--------------------------");
-}
+    print_diff(expected, actual, NUM_CONTEXT_LINES);
 
-pub(crate) fn ok(path: &Path, _expanded_path: &Path) {
-    eprintln!("{path} - {}", Paint::green("ok"), path = path.display());
-}
-
-pub(crate) fn unexpected_failure(path: &Path, _expanded_path: &Path, err: &str) {
-    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
-    eprintln!("--------------------------");
-
-    eprintln!("{}", Paint::red("Unexpected failure:"));
-    eprintln!("{}", Paint::red(err));
-
-    // No `cargo expand` subcommand installed, make a suggestion
-    if err.contains("no such subcommand: `expand`") {
-        eprintln!(
-            "{}",
-            Paint::cyan("help: Perhaps, `cargo expand` is not installed?")
-        );
-        eprintln!("{}", Paint::cyan("Install it by running:"));
-        eprintln!();
-        eprintln!("{}", Paint::cyan("\tcargo install cargo-expand"));
-        eprintln!();
-    }
-
-    // No nightly installed, make a suggestion
-    if err.starts_with("error: toolchain '") && err.ends_with("is not installed") {
-        eprintln!("{}", Paint::cyan("You have `cargo expand` installed but it requires *nightly* compiler to be installed as well."));
-        eprintln!("{}", Paint::cyan("To install it via rustup, run:"));
-        eprintln!();
-        eprintln!("{}", Paint::cyan("\trustup toolchain install nightly"));
-        eprintln!();
-    }
-
-    eprintln!("--------------------------");
-    eprintln!("--------------------------");
-}
-
-pub(crate) fn expected_failure(path: &Path, _expanded_path: &Path) {
-    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
-    eprintln!("--------------------------");
-    eprintln!("{}", Paint::red("Expected failure"));
-    eprintln!("--------------------------");
-}
-
-pub(crate) fn missing(path: &Path, expanded_path: &Path) {
-    eprintln!("{path} - {}", Paint::red("MISSING"), path = path.display());
-    eprintln!("--------------------------");
-    eprintln!(
-        "{}",
-        Paint::red(format!(
-            "Expected file at path {path}",
-            path = expanded_path.display()
-        ))
-    );
     eprintln!();
     eprintln!(
         "{}",
         Paint::cyan(format!(
-            "Hint: Set the `{key}={val}` environment value when running the tests to create the files for your automatically.",
+            "help: To update the file run your tests with `{key}={val}`.",
             key = TRYEXPAND_ENV_KEY,
             val = TRYEXPAND_ENV_VAL_OVERWRITE
         ))
@@ -117,7 +33,7 @@ pub(crate) fn missing(path: &Path, expanded_path: &Path) {
     eprintln!("--------------------------");
 }
 
-pub(crate) fn created(path: &Path, expanded_path: &Path) {
+pub(crate) fn snapshot_created(path: &Path, expanded_path: &Path, after: &str) {
     eprintln!(
         "{path} - {}",
         Paint::yellow("created"),
@@ -131,10 +47,11 @@ pub(crate) fn created(path: &Path, expanded_path: &Path) {
             path = expanded_path.display()
         ))
     );
+    print_diff("", after, 5);
     eprintln!("--------------------------");
 }
 
-pub(crate) fn updated(path: &Path, expanded_path: &Path) {
+pub(crate) fn snapshot_updated(path: &Path, expanded_path: &Path, before: &str, after: &str) {
     eprintln!(
         "{path} - {}",
         Paint::yellow("updated"),
@@ -148,7 +65,128 @@ pub(crate) fn updated(path: &Path, expanded_path: &Path) {
             path = expanded_path.display()
         ))
     );
+    print_diff(before, after, 5);
     eprintln!("--------------------------");
+}
+
+pub(crate) fn snapshot_missing(path: &Path, expanded_path: &Path) {
+    eprintln!("{path} - {}", Paint::red("MISSING"), path = path.display());
+    eprintln!("--------------------------");
+    eprintln!(
+        "{}",
+        Paint::red(format!(
+            "Expected file at path {path}",
+            path = expanded_path.display()
+        ))
+    );
+    eprintln!();
+    eprintln!(
+        "{}",
+        Paint::cyan(format!(
+            "help: Run your tests with `{key}={val}` to have the files created automatically.",
+            key = TRYEXPAND_ENV_KEY,
+            val = TRYEXPAND_ENV_VAL_OVERWRITE
+        ))
+    );
+    eprintln!("--------------------------");
+}
+
+pub(crate) fn unexpected_success(path: &Path, _expanded_path: &Path, output: &str) {
+    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("--------------------------");
+    eprintln!("{}", Paint::red("Unexpected success:"));
+    eprintln!();
+    let lines: Vec<&str> = output.lines().collect();
+    let trimmed_lines = trim_infix(&lines, 3, 3);
+    for line in trimmed_lines {
+        eprintln!("{}", Paint::red(line));
+    }
+    eprintln!("--------------------------");
+}
+
+pub(crate) fn unexpected_failure(path: &Path, _expanded_path: &Path, output: &str) {
+    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("--------------------------");
+
+    eprintln!("{}", Paint::red("Unexpected failure:"));
+    eprintln!();
+    eprintln!("{}", Paint::red(output.trim()));
+
+    // No `cargo expand` subcommand installed, make a suggestion
+    if output.contains("no such subcommand: `expand`") {
+        eprintln!(
+            "{}",
+            Paint::cyan("help: Perhaps, `cargo expand` is not installed?")
+        );
+        eprintln!("{}", Paint::cyan("      Install it by running:"));
+        eprintln!();
+        eprintln!("{}", Paint::cyan("      $ cargo install cargo-expand"));
+        eprintln!();
+    }
+
+    // No nightly installed, make a suggestion
+    if output.starts_with("error: toolchain '") && output.ends_with("is not installed") {
+        eprintln!("{}", Paint::cyan("help: You have `cargo expand` installed but it requires *nightly* compiler to be installed as well."));
+        eprintln!("{}", Paint::cyan("      To install it via rustup, run:"));
+        eprintln!();
+        eprintln!(
+            "{}",
+            Paint::cyan("      $ rustup toolchain install nightly")
+        );
+        eprintln!();
+    }
+
+    eprintln!("--------------------------");
+}
+
+fn print_diff(before: &str, after: &str, num_context_lines: usize) {
+    let diff_lines = diff::lines(before, after);
+    for diff_run in DiffRunsIterator::from(diff_lines.into_iter()) {
+        match diff_run {
+            diff::Result::Left(lines) => {
+                for line in lines {
+                    eprintln!("{}", Paint::red(format!("- {line}")));
+                }
+            }
+            diff::Result::Both(lines, _) => {
+                let lines = trim_infix(&lines, num_context_lines, num_context_lines);
+
+                for line in lines {
+                    eprintln!("{}", Paint::blue(format!("  {line}")));
+                }
+            }
+            diff::Result::Right(lines) => {
+                for line in lines {
+                    eprintln!("{}", Paint::green(format!("+ {line}")));
+                }
+            }
+        }
+    }
+}
+
+fn trim_infix<'a>(
+    lines: &'a [&'a str],
+    max_prefix_len: usize,
+    max_suffix_len: usize,
+) -> Vec<&'a str> {
+    let mut trimmed: Vec<&str> = vec![];
+    let num_lens = lines.len();
+
+    for (index, &line) in lines.iter().enumerate() {
+        if index < max_prefix_len {
+            trimmed.push(line);
+        } else if index == max_prefix_len {
+            if num_lens > (max_prefix_len + max_suffix_len) {
+                trimmed.push("...");
+            } else {
+                trimmed.push(line);
+            }
+        } else if (num_lens - index) <= max_suffix_len {
+            trimmed.push(line);
+        }
+    }
+
+    trimmed
 }
 
 struct DiffRunsIterator<I>
@@ -174,35 +212,40 @@ where
     T: Clone,
     I: Iterator<Item = diff::Result<T>>,
 {
-    type Item = Vec<diff::Result<T>>;
+    type Item = diff::Result<Vec<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use diff::Result;
 
-        let Some(mut current) = self.current.take() else {
+        let Some(current) = self.current.take() else {
             return None;
         };
 
-        let mut run = vec![];
+        let mut result = match current {
+            Result::Left(lhs) => Result::Left(vec![lhs]),
+            Result::Both(lhs, rhs) => Result::Both(vec![lhs], vec![rhs]),
+            Result::Right(rhs) => Result::Right(vec![rhs]),
+        };
 
         for next in self.iter.by_ref() {
-            let is_match = matches!(
-                (&current, &next),
-                (Result::Left(_), Result::Left(_))
-                    | (Result::Both(_, _), Result::Both(_, _))
-                    | (Result::Right(_), Result::Right(_))
-            );
-
-            run.push(current);
-
-            if is_match {
-                current = next;
-            } else {
-                self.current = Some(next);
-                break;
-            }
+            match (&mut result, &next) {
+                (Result::Left(run), Result::Left(lhs)) => {
+                    run.push(lhs.clone());
+                }
+                (Result::Both(lhs_run, rhs_run), Result::Both(lhs, rhs)) => {
+                    lhs_run.push(lhs.clone());
+                    rhs_run.push(rhs.clone());
+                }
+                (Result::Right(run), Result::Right(rhs)) => {
+                    run.push(rhs.clone());
+                }
+                (_, next) => {
+                    self.current = Some(next.clone());
+                    break;
+                }
+            };
         }
 
-        Some(run)
+        Some(result)
     }
 }
