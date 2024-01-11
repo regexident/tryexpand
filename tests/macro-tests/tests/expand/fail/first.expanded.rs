@@ -5,4 +5,4 @@ tests/expand/fail/first.rs:1:1
   | ^^^^ expected item
   |
   = note: for a full list of items that can appear in modules, see <https://doc.rust-lang.org/reference/items.html>
-error: could not compile `macro-tests-tests` (bin "tryexpand001") due to previous error
+error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

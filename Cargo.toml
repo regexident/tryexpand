@@ -14,10 +14,12 @@ authors = ["eupn <eupn@protonmail.com>"]
 description = "Test harness for macro expansion"
 
 [dependencies]
+base62 = "2.0.2"
 basic-toml = "0.1"
 diff = "0.1"
 glob = "0.3"
 prettyplease = "0.2"
+scopeguard = "1.2.0"
 serde = { version = "1.0.105", features = ["derive"] }
 serde_json = "1.0"
 syn = { version = "2", features = ["full"] }
