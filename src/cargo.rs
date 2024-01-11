@@ -1,9 +1,7 @@
-use std::borrow::Cow;
-use std::io::BufRead;
-use std::iter::FromIterator;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{collections::HashMap, ffi::OsStr};
+use std::{
+    borrow::Cow, collections::HashMap, ffi::OsStr, io::BufRead, iter::FromIterator, path::PathBuf,
+    process::Command,
+};
 
 use serde::Deserialize;
 
