@@ -1,11 +1,10 @@
-# `macrotest`
+# `tryexpand`
 
-[![Travis-CI](https://api.travis-ci.com/eupn/macrotest.svg?branch=master)](https://travis-ci.com/eupn/macrotest)
-[![Crates.io](https://img.shields.io/crates/v/macrotest)](https://crates.io/crates/macrotest)
+[![Crates.io](https://img.shields.io/crates/v/tryexpand)](https://crates.io/crates/tryexpand)
 ![MSRV 1.56](https://img.shields.io/badge/MSRV-1.56-orange.svg)
-[![docs.rs](https://docs.rs/macrotest/badge.svg)](https://docs.rs/macrotest/)
-[![Crates.io](https://img.shields.io/crates/d/macrotest)](https://crates.io/crates/macrotest)
-[![Crates.io](https://img.shields.io/crates/l/macrotest)](https://crates.io/crates/macrotest)
+[![docs.rs](https://docs.rs/tryexpand/badge.svg)](https://docs.rs/tryexpand/)
+[![Crates.io](https://img.shields.io/crates/d/tryexpand)](https://crates.io/crates/tryexpand)
+[![Crates.io](https://img.shields.io/crates/l/tryexpand)](https://crates.io/crates/tryexpand)
 
 Similar to [trybuild], but allows you to test how declarative or procedural macros are expanded.
 
@@ -15,7 +14,7 @@ Similar to [trybuild], but allows you to test how declarative or procedural macr
 
 ## Documentation
 
-Please refer to the [documentation](https://docs.rs/macrotest).
+Please refer to the [documentation](https://docs.rs/tryexpand).
 
 ## Example
 
@@ -25,7 +24,7 @@ Add to your crate's Cargo.toml:
 
 ```toml
 [dev-dependencies]
-macrotest = "1"
+tryexpand = "1"
 ```
 
 Under your crate's `tests/` directory, create `tests.rs` file containing the following code:
@@ -33,7 +32,7 @@ Under your crate's `tests/` directory, create `tests.rs` file containing the fol
 ```rust
 #[test]
 pub fn pass() {
-    macrotest::expand("tests/expand/*.rs");
+    tryexpand::expand("tests/expand/*.rs");
 }
 ```
 

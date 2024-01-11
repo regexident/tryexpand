@@ -36,7 +36,7 @@ pub(crate) fn try_get_workspace_manifest(manifest_dir: &Path) -> Result<Workspac
 }
 
 fn fix_dependencies(dependencies: &mut Map<String, Dependency>, dir: &Path) {
-    dependencies.remove("macrotest");
+    dependencies.remove("tryexpand");
     for dep in dependencies.values_mut() {
         dep.path = dep.path.as_ref().map(|path| dir.join(path));
     }
@@ -44,7 +44,7 @@ fn fix_dependencies(dependencies: &mut Map<String, Dependency>, dir: &Path) {
 
 fn fix_patches(patches: &mut Map<String, RegistryPatch>, dir: &Path) {
     for registry in patches.values_mut() {
-        registry.crates.remove("macrotest");
+        registry.crates.remove("tryexpand");
         for patch in registry.crates.values_mut() {
             patch.path = patch.path.as_ref().map(|path| dir.join(path));
         }
@@ -52,7 +52,7 @@ fn fix_patches(patches: &mut Map<String, RegistryPatch>, dir: &Path) {
 }
 
 fn fix_replacements(replacements: &mut Map<String, Patch>, dir: &Path) {
-    replacements.remove("macrotest");
+    replacements.remove("tryexpand");
     for replacement in replacements.values_mut() {
         replacement.path = replacement.path.as_ref().map(|path| dir.join(path));
     }

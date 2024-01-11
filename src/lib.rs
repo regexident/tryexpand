@@ -1,5 +1,5 @@
 #![crate_type = "lib"]
-#![doc(html_root_url = "https://docs.rs/macrotest/1.0.9")]
+#![doc(html_root_url = "https://docs.rs/tryexpand/1.0.9")]
 
 //! #### &emsp; Test harness for macro expansion.
 //!
@@ -11,14 +11,14 @@
 //!
 //! # Macro expansion tests
 //!
-//! A minimal `macrotest` setup looks like this:
+//! A minimal `tryexpand` setup looks like this:
 //!
 //! ```rust
 //! #[test]
 //! pub fn pass() {
-//!     macrotest::expand("tests/expand/*.rs");
+//!     tryexpand::expand("tests/expand/*.rs");
 //!     // Alternatively,
-//!     macrotest::expand_without_refresh("tests/expand/*.rs");
+//!     tryexpand::expand_without_refresh("tests/expand/*.rs");
 //! }
 //! ```
 //!
@@ -54,9 +54,9 @@
 //!
 //! ```rust
 //! pub fn pass() {
-//!     macrotest::expand_args("tests/expand/*.rs", &["--features", "my-feature"]);
+//!     tryexpand::expand_args("tests/expand/*.rs", &["--features", "my-feature"]);
 //!     // Or
-//!     macrotest::expand_without_refresh_args("tests/expand/*.rs", &["--features", "my-feature"]);
+//!     tryexpand::expand_without_refresh_args("tests/expand/*.rs", &["--features", "my-feature"]);
 //! }
 //! ```
 //!
@@ -87,9 +87,9 @@
 //! ```rust
 //! #[test]
 //! pub fn pass() {
-//!     macrotest::expand("tests/expand/*.rs");
+//!     tryexpand::expand("tests/expand/*.rs");
 //!     // Or:
-//!     macrotest::expand_without_refresh("tests/expand/*.rs");
+//!     tryexpand::expand_without_refresh("tests/expand/*.rs");
 //! }
 //! ```
 //!
@@ -110,7 +110,7 @@
 //!
 //! This applicable only to tests that are using [`expand`] or [`expand_args`] function.
 //!
-//! Run tests with the environment variable `MACROTEST=overwrite` or remove the `*.expanded.rs`
+//! Run tests with the environment variable `tryexpand=overwrite` or remove the `*.expanded.rs`
 //! files and re-run the corresponding tests. Files will be created automatically; hand-writing
 //! them is not recommended.
 //!

@@ -3,10 +3,10 @@
 
 #[test]
 pub fn parallel_1() {
-    macrotest::expand("tests/expand/first.rs");
+    tryexpand::expand("tests/expand/first.rs");
 }
 
 #[test]
 pub fn parallel_2() {
-    macrotest::expand("tests/expand/second.rs");
+    tryexpand::expand("tests/expand/second.rs");
 }
