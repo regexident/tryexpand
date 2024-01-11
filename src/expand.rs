@@ -1,11 +1,12 @@
 use core::panic;
 use std::{
-    collections::hash_map::DefaultHasher,
+    collections::{hash_map::DefaultHasher, HashSet},
     env,
     ffi::OsStr,
     fmt::Write,
     fs,
     hash::{Hash, Hasher},
+    iter::FromIterator,
     path::{Path, PathBuf},
 };
 
@@ -68,8 +69,12 @@ macro_rules! run_tests {
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand(path: impl AsRef<Path>) {
-    run_tests!(path, Option::<Vec<String>>::None, Expectation::Success);
+pub fn expand<I, P>(paths: I)
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    run_tests!(paths, Option::<Vec<String>>::None, Expectation::Success);
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -83,32 +88,40 @@ pub fn expand(path: impl AsRef<Path>) {
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_fail(path: impl AsRef<Path>) {
-    run_tests!(path, Option::<Vec<String>>::None, Expectation::Failure);
+pub fn expand_fail<I, P>(paths: I)
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    run_tests!(paths, Option::<Vec<String>>::None, Expectation::Failure);
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand`]: expand/fn.expand.html
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args<I, S>(path: impl AsRef<Path>, args: I)
+pub fn expand_args<Ip, P, Ia, A>(paths: Ip, args: Ia)
 where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
+    Ip: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+    Ia: IntoIterator<Item = A> + Clone,
+    A: AsRef<OsStr>,
 {
-    run_tests!(path, Some(args), Expectation::Success);
+    run_tests!(paths, Some(args), Expectation::Success);
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand_fail`]: expand/fn.expand_fail.html
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args_fail<I, S>(path: impl AsRef<Path>, args: I)
+pub fn expand_args_fail<Ip, P, Ia, A>(paths: Ip, args: Ia)
 where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
+    Ip: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+    Ia: IntoIterator<Item = A> + Clone,
+    A: AsRef<OsStr>,
 {
-    run_tests!(path, Some(args), Expectation::Failure);
+    run_tests!(paths, Some(args), Expectation::Failure);
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -118,39 +131,45 @@ enum ExpansionBehavior {
 }
 
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-fn run_tests<I, S>(
-    path: impl AsRef<Path>,
-    args: Option<I>,
+fn run_tests<Ip, P, Ia, A>(
+    paths: Ip,
+    args: Option<Ia>,
     test_suite_id: &str,
     expectation: Expectation,
 ) where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
+    Ip: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+    Ia: IntoIterator<Item = A> + Clone,
+    A: AsRef<OsStr>,
 {
-    match try_run_tests(path, args, test_suite_id, expectation) {
+    match try_run_tests(paths, args, test_suite_id, expectation) {
         Ok(()) => {}
         Err(err) => panic!("{}", err),
     }
 }
 
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-fn try_run_tests<I, S>(
-    path: impl AsRef<Path>,
-    args: Option<I>,
+fn try_run_tests<Ip, P, Ia, A>(
+    paths: Ip,
+    args: Option<Ia>,
     test_suite_id: &str,
     expectation: Expectation,
 ) -> Result<()>
 where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
+    Ip: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+    Ia: IntoIterator<Item = A> + Clone,
+    A: AsRef<OsStr>,
 {
-    let paths = expand_globs(&path)?
+    let unique_paths: HashSet<PathBuf> = paths
         .into_iter()
+        .filter_map(|path| expand_globs(path).ok())
+        .flatten()
         .filter(|path| !path.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
-        .collect::<Vec<_>>();
+        .collect();
 
+    let paths: Vec<PathBuf> = Vec::from_iter(unique_paths);
     let len = paths.len();
-    println!("Running {} macro expansion tests ...!", len);
 
     let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::PkgName)?;
 
@@ -163,6 +182,8 @@ where
     });
 
     let behavior = expansion_behavior()?;
+
+    println!("Running {} macro expansion tests ...!", len);
 
     let mut failures = vec![];
 
@@ -267,7 +288,7 @@ where
 
     let name = test_crate_name.clone();
 
-    let tests: Vec<_> = paths
+    let mut tests: Vec<_> = paths
         .into_iter()
         .map(|path| {
             let bin = {
@@ -285,6 +306,8 @@ where
             }
         })
         .collect();
+
+    tests.sort_by_cached_key(|test| test.path.clone());
 
     let mut project = Project {
         dir,
