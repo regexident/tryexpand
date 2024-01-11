@@ -1,22 +1,15 @@
 use std::{
-    borrow::Cow, collections::HashMap, ffi::OsStr, io::BufRead, iter::FromIterator, path::PathBuf,
+    borrow::Cow, collections::HashMap, ffi::OsStr, io::BufRead, iter::FromIterator,
     process::Command,
 };
 
-use serde::Deserialize;
+use serde::Serialize;
 
 use crate::{
     error::{Error, Result},
-    manifest::{Build, Config},
     project::Project,
     rustflags,
 };
-
-#[derive(Deserialize)]
-pub struct Metadata {
-    pub target_directory: PathBuf,
-    pub workspace_root: PathBuf,
-}
 
 fn raw_cargo() -> Command {
     Command::new(option_env!("CARGO").unwrap_or("cargo"))
@@ -30,14 +23,14 @@ fn cargo(project: &Project) -> Command {
     cmd
 }
 
-pub(crate) fn metadata() -> Result<Metadata> {
-    let output = raw_cargo()
-        .arg("metadata")
-        .arg("--format-version=1")
-        .output()
-        .map_err(Error::Cargo)?;
+#[derive(Serialize, Debug)]
+pub struct Config {
+    pub build: Build,
+}
 
-    serde_json::from_slice(&output.stdout).map_err(Error::CargoMetadata)
+#[derive(Serialize, Debug)]
+pub struct Build {
+    pub rustflags: Vec<String>,
 }
 
 pub(crate) fn make_config() -> Config {
@@ -70,6 +63,9 @@ where
     if let Some(args) = args {
         cargo.args(args.clone());
     }
+
+    let all_args: Vec<_> = cargo.get_args().map(|s| s.to_string_lossy()).collect();
+    eprintln!("🔴 cargo {}", all_args.join(" "));
 
     let output = cargo
         .output()
@@ -140,10 +136,11 @@ fn std_err_replacements(name: &str, bin: &str) -> HashMap<String, String> {
 pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
     use std::io::Write;
 
+    println!("\n");
+
     let stdout = cargo(project)
         .arg("expand")
-        .arg("--bin")
-        .arg(project.name.clone())
+        .arg("--lib")
         .arg("--theme")
         .arg("none")
         .stdout(std::process::Stdio::piped())

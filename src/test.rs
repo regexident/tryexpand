@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, path::PathBuf};
 
 use crate::{
     cargo::{self, Expansion},
-    error::{Error, Result},
+    error::Result,
     expansion::{normalize_stderr_expansion, normalize_stdout_expansion},
     Project,
 };
@@ -60,10 +60,9 @@ enum ComparisonOutcome {
 
 #[derive(Debug)]
 pub(crate) struct Test {
-    pub(crate) bin: String,
-    pub(crate) path: PathBuf,
-    pub(crate) expanded_path: PathBuf,
-    pub(crate) error: Option<Error>,
+    pub bin: String,
+    pub path: PathBuf,
+    pub expanded_path: PathBuf,
 }
 
 impl Test {

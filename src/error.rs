@@ -4,16 +4,15 @@ use crate::TRYEXPAND_ENV_KEY;
 
 #[derive(Debug)]
 pub(crate) enum Error {
-    Cargo(std::io::Error),
     CargoExpandExecution(String),
     CargoFail,
-    CargoMetadata(serde_json::error::Error),
+    CargoMetadata(cargo_toml::Error),
+    CargoManifestDir,
     Io(std::io::Error),
     Toml(basic_toml::Error),
     Glob(glob::GlobError),
     GlobPattern(glob::PatternError),
-    ManifestDir,
-    PkgName,
+    CargoPkgName,
     UnrecognizedEnv(std::ffi::OsString),
 }
 
@@ -24,7 +23,6 @@ impl std::fmt::Display for Error {
         use self::Error::*;
 
         match self {
-            Cargo(e) => write!(f, "{}", e),
             CargoExpandExecution(e) => write!(f, "Failed to execute cargo command: {}", e),
             CargoFail => write!(f, "cargo reported an error"),
             CargoMetadata(e) => write!(f, "{}", e),
@@ -32,8 +30,8 @@ impl std::fmt::Display for Error {
             Toml(e) => write!(f, "{}", e),
             Glob(e) => write!(f, "{}", e),
             GlobPattern(e) => write!(f, "{}", e),
-            ManifestDir => write!(f, "could not find CARGO_MANIFEST_DIR env var"),
-            PkgName => write!(f, "could not find CARGO_PKG_NAME env var"),
+            CargoManifestDir => write!(f, "could not find 'CARGO_MANIFEST_DIR' env var"),
+            CargoPkgName => write!(f, "could not find 'CARGO_PKG_NAME' env var"),
             UnrecognizedEnv(e) => write!(
                 f,
                 "unrecognized value of {key} env var: \"{}\"",

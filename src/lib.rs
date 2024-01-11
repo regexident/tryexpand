@@ -109,10 +109,8 @@
 use std::{ffi::OsStr, path::Path};
 
 mod cargo;
-mod dependencies;
 mod error;
 mod expansion;
-mod features;
 mod manifest;
 mod message;
 mod project;

@@ -70,7 +70,7 @@ where
     let paths: Vec<PathBuf> = Vec::from_iter(unique_paths);
     let len = paths.len();
 
-    let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::PkgName)?;
+    let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::CargoPkgName)?;
 
     let project = setup_project(&crate_name, test_suite_id, paths).unwrap_or_else(|err| {
         panic!("prepare failed: {:#?}", err);
