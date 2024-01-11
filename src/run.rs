@@ -123,11 +123,11 @@ fn test_behavior() -> Result<TestBehavior> {
     let Some(var) = std::env::var_os(TRYEXPAND_ENV_KEY) else {
         return Ok(TestBehavior::ExpectFiles);
     };
-
-    match var.as_os_str().to_string_lossy().as_ref() {
+    let value = var.to_string_lossy().into_owned();
+    match value.as_str() {
         TRYEXPAND_ENV_VAL_EXPECT => Ok(TestBehavior::ExpectFiles),
         TRYEXPAND_ENV_VAL_OVERWRITE => Ok(TestBehavior::OverwriteFiles),
-        _ => Err(Error::UnrecognizedEnv(var)),
+        _ => Err(Error::UnrecognizedEnv(value)),
     }
 }
 
