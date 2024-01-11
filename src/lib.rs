@@ -1,6 +1,3 @@
-#![crate_type = "lib"]
-#![doc(html_root_url = "https://docs.rs/tryexpand/1.0.9")]
-
 //! #### &emsp; Test harness for macro expansion.
 //!
 //! Similar to [trybuild], but allows you to write tests on how macros are expanded.
