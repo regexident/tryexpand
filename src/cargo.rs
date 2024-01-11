@@ -1,14 +1,15 @@
-use std::ffi::OsStr;
+use std::borrow::Cow;
 use std::io::BufRead;
+use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::process::Command;
+use std::{collections::HashMap, ffi::OsStr};
 
 use serde::Deserialize;
 
 use crate::{
     error::{Error, Result},
     expand::Project,
-    manifest::Name,
     rustflags,
 };
 
@@ -46,7 +47,7 @@ pub(crate) enum Expansion {
     Failure { stderr: String },
 }
 
-pub(crate) fn expand<I, S>(project: &Project, name: &Name, args: &Option<I>) -> Result<Expansion>
+pub(crate) fn expand<I, S>(project: &Project, bin: &str, args: &Option<I>) -> Result<Expansion>
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
@@ -55,7 +56,7 @@ where
     let cargo = cargo
         .arg("expand")
         .arg("--bin")
-        .arg(name.as_ref())
+        .arg(bin)
         .arg("--theme")
         .arg("none");
 
@@ -65,18 +66,13 @@ where
 
     let output = cargo
         .output()
-        .map_err(|e| Error::CargoExpandExecution(e.to_string()))?;
+        .map_err(|err| Error::CargoExpandExecution(err.to_string()))?;
+
+    let name = &project.name;
 
     let status = output.status;
-    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-    // Sometimes the `cargo expand` command returns a success status,
-    // despite an error having occurred, so we need to look for those:
-    let has_errors = stderr.lines().any(|line| {
-        let line = line.trim_start();
-        line.starts_with("error: ") || line.starts_with("ERROR: ")
-    });
+    let stdout = process_stdout(&output.stdout);
+    let (stderr, has_errors) = process_stderr(&output.stderr, name, bin);
 
     let is_success = status.success() && !output.stdout.is_empty() && !has_errors;
 
@@ -85,6 +81,49 @@ where
     } else {
         Ok(Expansion::Failure { stderr })
     }
+}
+
+fn process_stdout(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).into_owned()
+}
+
+fn process_stderr(bytes: &[u8], name: &str, bin: &str) -> (String, bool) {
+    let stderr = String::from_utf8_lossy(bytes);
+
+    let replacements = std_err_replacements(name, bin);
+    let mut has_errors = false;
+
+    let lines: Vec<Cow<'_, str>> = stderr
+        .lines()
+        .inspect(|line| {
+            // Sometimes the `cargo expand` command returns a success status,
+            // despite an error having occurred, so we need to look for those:
+            has_errors |= line.starts_with("error: ");
+        })
+        .map(|line| {
+            // Sanitize output by stripping unstable (as in might change between runs)
+            // error output to prevent snapshots from getting dirty unintentionally:
+            replacements
+                .get(line)
+                .map(Cow::from)
+                .unwrap_or_else(|| Cow::from(line))
+        })
+        .collect();
+
+    let lines: Vec<&str> = lines.iter().map(|line| line.as_ref()).collect();
+
+    let stderr = lines.join("\n");
+    (stderr, has_errors)
+}
+
+fn std_err_replacements(name: &str, bin: &str) -> HashMap<String, String> {
+    fn error_pattern(name: &str, bin: &str) -> String {
+        format!("error: could not compile `{name}` (bin \"{bin}\") due to previous error")
+    }
+
+    let error = (error_pattern(name, bin), error_pattern("<CRATE>", "<BIN>"));
+
+    HashMap::from_iter([error])
 }
 
 /// Builds dependencies for macro expansion and pipes `cargo` output to `STDOUT`.

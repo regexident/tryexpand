@@ -3,4 +3,4 @@ tests/expand/fail/second.rs:1:5
   |
 1 | mod {
   |     ^ expected identifier
-error: could not compile `macro-tests-tests` (bin "tryexpand003") due to previous error
+error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

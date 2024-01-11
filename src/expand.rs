@@ -1,10 +1,12 @@
+use core::panic;
 use std::{
+    collections::hash_map::DefaultHasher,
     env,
     ffi::OsStr,
     fmt::Write,
     fs,
+    hash::{Hash, Hasher},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use syn::{punctuated::Punctuated, Item, Meta, Token};
@@ -30,21 +32,29 @@ pub(crate) struct Project {
     pub name: String,
     pub features: Option<Vec<String>>,
     workspace: PathBuf,
-    behavior: ExpansionBehavior,
+    tests: Vec<ExpandedTest>,
 }
 
-/// This `Drop` implementation will clean up the temporary crates when expansion is finished.
-/// This is to prevent pollution of the filesystem with dormant files.
-impl Drop for Project {
-    fn drop(&mut self) {
-        if let Err(e) = fs::remove_dir_all(&self.dir) {
-            eprintln!(
-                "Failed to cleanup the directory `{}`: {}",
-                self.dir.to_string_lossy(),
-                e
-            );
-        }
-    }
+macro_rules! test_suite_id_based_on_caller_location {
+    () => {{
+        let caller_location = std::panic::Location::caller();
+
+        let mut hasher = DefaultHasher::default();
+        caller_location.file().hash(&mut hasher);
+        caller_location.line().hash(&mut hasher);
+        caller_location.column().hash(&mut hasher);
+        base62::encode(hasher.finish())
+    }};
+}
+
+macro_rules! run_tests {
+    ($paths:expr, $args:expr, $expectation:expr) => {
+        // IMPORTANT: This only works as lone as all functions between
+        // the public API and this call are marked with `#[track_caller]`:
+        let test_suite_id = test_suite_id_based_on_caller_location!();
+
+        run_tests($paths, $args, &test_suite_id, $expectation);
+    };
 }
 
 /// Attempts to expand macros in files that match glob pattern.
@@ -57,9 +67,9 @@ impl Drop for Project {
 /// # Panics
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
-#[track_caller]
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand(path: impl AsRef<Path>) {
-    run_tests(path, Option::<Vec<String>>::None, Expectation::Success);
+    run_tests!(path, Option::<Vec<String>>::None, Expectation::Success);
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -72,33 +82,33 @@ pub fn expand(path: impl AsRef<Path>) {
 /// # Panics
 ///
 /// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
-#[track_caller]
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_fail(path: impl AsRef<Path>) {
-    run_tests(path, Option::<Vec<String>>::None, Expectation::Failure);
+    run_tests!(path, Option::<Vec<String>>::None, Expectation::Failure);
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand`]: expand/fn.expand.html
-#[track_caller]
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_args<I, S>(path: impl AsRef<Path>, args: I)
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    run_tests(path, Some(args), Expectation::Success);
+    run_tests!(path, Some(args), Expectation::Success);
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand_fail`]: expand/fn.expand_fail.html
-#[track_caller]
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_args_fail<I, S>(path: impl AsRef<Path>, args: I)
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    run_tests(path, Some(args), Expectation::Failure);
+    run_tests!(path, Some(args), Expectation::Failure);
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -107,47 +117,60 @@ enum ExpansionBehavior {
     ExpectFiles,
 }
 
-#[track_caller]
-fn run_tests<I, S>(path: impl AsRef<Path>, args: Option<I>, expectation: Expectation)
-where
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+fn run_tests<I, S>(
+    path: impl AsRef<Path>,
+    args: Option<I>,
+    test_suite_id: &str,
+    expectation: Expectation,
+) where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    match try_run_tests(path, args, expectation) {
+    match try_run_tests(path, args, test_suite_id, expectation) {
         Ok(()) => {}
         Err(err) => panic!("{}", err),
     }
 }
 
-#[track_caller]
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 fn try_run_tests<I, S>(
     path: impl AsRef<Path>,
     args: Option<I>,
+    test_suite_id: &str,
     expectation: Expectation,
 ) -> Result<()>
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
 {
-    let tests = expand_globs(&path)?
+    let paths = expand_globs(&path)?
         .into_iter()
-        .filter(|t| !t.path.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
+        .filter(|path| !path.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
         .collect::<Vec<_>>();
 
-    let len = tests.len();
+    let len = paths.len();
     println!("Running {} macro expansion tests ...!", len);
 
-    let project = prepare(&tests).unwrap_or_else(|err| {
+    let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::PkgName)?;
+
+    let project = setup_project(&crate_name, test_suite_id, paths).unwrap_or_else(|err| {
         panic!("prepare failed: {:#?}", err);
     });
 
+    let _guard = scopeguard::guard((), |_| {
+        let _ = teardown_project(project.dir.clone());
+    });
+
+    let behavior = expansion_behavior()?;
+
     let mut failures = vec![];
 
-    for test in tests {
+    for test in &project.tests {
         let path = test.path.as_path();
         let expanded_path = test.expanded_path.as_path();
 
-        let outcome = match test.run(&project, &args, expectation) {
+        let outcome = match test.run(&project, &args, behavior, expectation) {
             Ok(outcome) => outcome,
             Err(err) => {
                 eprintln!("Error: {err:#?}");
@@ -221,48 +244,59 @@ fn expansion_behavior() -> Result<ExpansionBehavior> {
     }
 }
 
-fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
+fn setup_project<I>(crate_name: &str, test_suite_id: &str, paths: I) -> Result<Project>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
     let metadata = cargo::metadata()?;
     let target_dir = metadata.target_directory;
     let workspace = metadata.workspace_root;
-
-    let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::PkgName)?;
 
     let source_dir = env::var_os("CARGO_MANIFEST_DIR")
         .map(PathBuf::from)
         .ok_or(Error::ManifestDir)?;
 
     let features = features::find();
-    let behavior = expansion_behavior()?;
 
-    static COUNT: AtomicUsize = AtomicUsize::new(0);
-    // Use unique string for the crate dir to
-    // prevent conflicts when running parallel tests.
-    let unique_string: String = format!("tryexpand{:03}", COUNT.fetch_add(1, Ordering::SeqCst));
-    let dir = target_dir
-        .join("tests")
-        .join(&crate_name)
-        .join(unique_string);
-    if dir.exists() {
-        // Remove remaining artifacts from previous runs if exist.
-        // For example, if the user stops the test with Ctrl-C during a previous
-        // run, the destructor of Project will not be called.
-        fs::remove_dir_all(&dir)?;
-    }
+    let tests_dir = target_dir.join("tests");
 
-    let inner_target_dir = target_dir.join("tests").join("tryexpand");
+    let test_crate_name = make_name(crate_name, test_suite_id);
+    let dir = tests_dir.join(&test_crate_name);
+
+    let inner_target_dir = tests_dir.join("tryexpand");
+
+    let name = test_crate_name.clone();
+
+    let tests: Vec<_> = paths
+        .into_iter()
+        .map(|path| {
+            let bin = {
+                let mut hasher = DefaultHasher::default();
+                path.hash(&mut hasher);
+                let test_id = base62::encode(hasher.finish());
+                make_name(&name, &test_id)
+            };
+            let expanded_path = path.with_extension(EXPANDED_RS_SUFFIX);
+            ExpandedTest {
+                bin,
+                path,
+                expanded_path,
+                error: None,
+            }
+        })
+        .collect();
 
     let mut project = Project {
         dir,
         source_dir,
         inner_target_dir,
-        name: format!("{}-tests", crate_name),
+        name,
         features,
         workspace,
-        behavior,
+        tests,
     };
 
-    let manifest = make_manifest(crate_name, &project, tests)?;
+    let manifest = make_manifest(crate_name, &test_crate_name, &project)?;
     let manifest_toml = basic_toml::to_string(&manifest)?;
 
     let config = make_config();
@@ -270,6 +304,13 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
 
     if let Some(enabled_features) = &mut project.features {
         enabled_features.retain(|feature| manifest.features.contains_key(feature));
+    }
+
+    if project.dir.exists() {
+        // Remove remaining artifacts from previous runs if exist.
+        // For example, if the user stops the test with Ctrl-C during a previous
+        // run, the destructor of Project will not be called.
+        fs::remove_dir_all(&project.dir)?;
     }
 
     fs::create_dir_all(project.dir.join(".cargo"))?;
@@ -284,11 +325,20 @@ fn prepare(tests: &[ExpandedTest]) -> Result<Project> {
     Ok(project)
 }
 
-fn make_manifest(
-    crate_name: String,
-    project: &Project,
-    tests: &[ExpandedTest],
-) -> Result<Manifest> {
+fn teardown_project(project_dir: PathBuf) -> Result<()> {
+    if project_dir.exists() {
+        // Remove artifacts from the run (on a best-effort basis):
+        fs::remove_dir_all(project_dir)?;
+    }
+
+    Ok(())
+}
+
+fn make_name(name: &str, id: &str) -> String {
+    format!("{name}-{id}")
+}
+
+fn make_manifest(crate_name: &str, test_crate_name: &str, project: &Project) -> Result<Manifest> {
     let source_manifest = dependencies::get_manifest(&project.source_dir);
     let workspace_manifest = dependencies::get_workspace_manifest(&project.workspace);
 
@@ -303,7 +353,7 @@ fn make_manifest(
 
     let mut manifest = Manifest {
         package: Package {
-            name: project.name.clone(),
+            name: test_crate_name.to_owned(),
             version: "0.0.0".to_owned(),
             edition: source_manifest.package.edition,
             publish: false,
@@ -323,7 +373,7 @@ fn make_manifest(
         .dependencies
         .extend(source_manifest.dev_dependencies);
     manifest.dependencies.insert(
-        crate_name,
+        crate_name.to_owned(),
         Dependency {
             version: None,
             path: Some(project.source_dir.clone()),
@@ -338,10 +388,10 @@ fn make_manifest(
         path: Path::new("main.rs").to_owned(),
     });
 
-    for expanded in tests {
+    for expanded in &project.tests {
         if expanded.error.is_none() {
             manifest.bins.push(Bin {
-                name: expanded.name.clone(),
+                name: Name(expanded.bin.clone()),
                 path: project.source_dir.join(&expanded.path),
             });
         }
@@ -383,7 +433,7 @@ pub(crate) enum TestOutcome {
 
 #[derive(Debug)]
 struct ExpandedTest {
-    name: Name,
+    bin: String,
     path: PathBuf,
     expanded_path: PathBuf,
     error: Option<Error>,
@@ -394,6 +444,7 @@ impl ExpandedTest {
         &self,
         project: &Project,
         args: &Option<I>,
+        behavior: ExpansionBehavior,
         expectation: Expectation,
     ) -> Result<TestOutcome>
     where
@@ -401,7 +452,8 @@ impl ExpandedTest {
         S: AsRef<OsStr>,
     {
         let expanded_path = self.expanded_path.as_path();
-        let expansion = cargo::expand(project, &self.name, args)?;
+
+        let expansion = cargo::expand(project, &self.bin, args)?;
 
         let actual = match &expansion {
             cargo::Expansion::Success { stdout } => {
@@ -423,10 +475,9 @@ impl ExpandedTest {
         }
 
         if !expanded_path.exists() {
-            match project.behavior {
+            match behavior {
                 ExpansionBehavior::OverwriteFiles => {
                     // Write a .expanded.rs file contents with an newline character at the end
-                    // panic!("create: {expanded_path:?}");
                     fs::write(expanded_path, &actual)?;
 
                     return Ok(TestOutcome::SnapshotCreated { after: actual });
@@ -440,10 +491,9 @@ impl ExpandedTest {
         match compare(&actual, &expected) {
             ComparisonOutcome::Match => Ok(TestOutcome::Ok),
             ComparisonOutcome::Mismatch => {
-                match project.behavior {
+                match behavior {
                     ExpansionBehavior::OverwriteFiles => {
                         // Write a .expanded.rs file contents with an newline character at the end
-                        // panic!("update: {expanded_path:?}");
                         fs::write(expanded_path, &actual)?;
 
                         Ok(TestOutcome::SnapshotUpdated {
@@ -549,7 +599,7 @@ fn normalize_expansion(input: &str, num_lines_to_skip: usize, project: &Project)
     }
 }
 
-fn expand_globs(path: impl AsRef<Path>) -> Result<Vec<ExpandedTest>> {
+fn expand_globs(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let path = path.as_ref();
 
     fn glob(pattern: &str) -> Result<Vec<PathBuf>> {
@@ -560,50 +610,7 @@ fn expand_globs(path: impl AsRef<Path>) -> Result<Vec<ExpandedTest>> {
         Ok(paths)
     }
 
-    fn bin_name(i: usize) -> Name {
-        Name(format!("tryexpand{:03}", i))
-    }
-
-    let mut vec = Vec::new();
-
-    let name = path
-        .file_stem()
-        .expect("no file stem")
-        .to_string_lossy()
-        .to_string();
-
     let path_string = path.as_os_str().to_string_lossy();
 
-    let paths = glob(&path_string)?;
-    for path in paths {
-        let expanded_path = path.with_extension(EXPANDED_RS_SUFFIX);
-        vec.push(ExpandedTest {
-            name: bin_name(vec.len()),
-            path,
-            expanded_path,
-            error: None,
-        });
-    }
-    // if path_string.contains('*') {
-    //     let paths = glob(&path_string)?;
-    //     for path in paths {
-    //         let expanded_path = path.with_extension(EXPANDED_RS_SUFFIX);
-    //         vec.push(ExpandedTest {
-    //             name: bin_name(vec.len()),
-    //             path,
-    //             expanded_path,
-    //             error: None,
-    //         });
-    //     }
-    // } else {
-    //     let mut expanded = ExpandedTest {
-    //         name: Name(name),
-    //         path: path.to_path_buf(),
-    //         expanded_path: path.with_extension(EXPANDED_RS_SUFFIX),
-    //         error: None,
-    //     };
-    //     vec.push(expanded);
-    // }
-
-    Ok(vec)
+    Ok(glob(&path_string)?.into_iter().collect())
 }
