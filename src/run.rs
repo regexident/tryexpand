@@ -11,7 +11,7 @@ use std::{
 use crate::{
     error::{Error, Result},
     message,
-    project::{setup_project, teardown_project},
+    project::Project,
     test::{TestBehavior, TestExpectation, TestResult},
     TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
@@ -73,12 +73,8 @@ where
 
     let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::CargoPkgName)?;
 
-    let project = setup_project(&crate_name, test_suite_id, paths).unwrap_or_else(|err| {
-        panic!("prepare failed: {:#?}", err);
-    });
-
-    let _guard = scopeguard::guard((), |_| {
-        let _ = teardown_project(project.dir.clone());
+    let project = Project::new(&crate_name, test_suite_id, paths).unwrap_or_else(|err| {
+        panic!("Could not create test project: {:#?}", err);
     });
 
     let behavior = test_behavior()?;
@@ -129,6 +125,8 @@ where
 
         panic!("{}", message);
     }
+
+    drop(project);
 
     Ok(())
 }
