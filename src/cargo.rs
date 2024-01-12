@@ -1,5 +1,9 @@
 use std::{
-    borrow::Cow, collections::HashMap, ffi::OsStr, io::BufRead, iter::FromIterator,
+    borrow::Cow,
+    collections::HashMap,
+    env,
+    ffi::{OsStr, OsString},
+    io::BufRead,
     process::Command,
 };
 
@@ -8,8 +12,9 @@ use serde::Serialize;
 use crate::{
     error::{Error, Result},
     project::Project,
-    rustflags,
 };
+
+const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
 
 fn raw_cargo() -> Command {
     Command::new(option_env!("CARGO").unwrap_or("cargo"))
@@ -19,7 +24,7 @@ fn cargo(project: &Project) -> Command {
     let mut cmd = raw_cargo();
     cmd.current_dir(&project.dir);
     cmd.env("CARGO_TARGET_DIR", &project.inner_target_dir);
-    rustflags::set_env(&mut cmd);
+    cmd.env(RUSTFLAGS_ENV_KEY, make_rustflags_env());
     cmd
 }
 
@@ -36,9 +41,26 @@ pub struct Build {
 pub(crate) fn make_config() -> Config {
     Config {
         build: Build {
-            rustflags: rustflags::make_vec(),
+            rustflags: tryexpand_rustflags(),
         },
     }
+}
+
+fn tryexpand_rustflags() -> Vec<String> {
+    vec!["-Awarnings".to_owned()]
+}
+
+fn make_rustflags_env() -> OsString {
+    let mut rustflags = match env::var_os(RUSTFLAGS_ENV_KEY) {
+        Some(rustflags) => rustflags,
+        None => OsString::new(),
+    };
+
+    for rustflag in tryexpand_rustflags() {
+        rustflags.push(rustflag);
+    }
+
+    rustflags
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
