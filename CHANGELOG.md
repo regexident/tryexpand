@@ -24,9 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- On failure two snapshots are now getting generated:
-  - the output from `stdout` gets saved to a `.expanded.rs` file
-  - the output from `stderr` gets saved to a `.error.txt` file
+- n/a
 
 ### Deprecated
 
@@ -34,8 +32,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Removed
 
-- Removed `scopeguard` crate from project's dependencies
-- Removed `serde_json` crate from project's dependencies
+- n/a
 
 ### Fixed
 
@@ -52,6 +49,19 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.2.0] - 2024-01-12
+
+### Changed
+
+- On failure two snapshots are now getting generated:
+  - the output from `stdout` gets saved to a `.expanded.rs` file
+  - the output from `stderr` gets saved to a `.error.txt` file
+
+### Removed
+
+- Removed `scopeguard` crate from project's dependencies
+- Removed `serde_json` crate from project's dependencies
 
 ## [0.1.0] - 2024-01-12
 
