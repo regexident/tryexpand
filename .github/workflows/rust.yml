@@ -1,0 +1,99 @@
+name: Rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, "**"]
+    paths-ignore:
+      - "CHANGELOG.md"
+  schedule:
+    - cron: "0 3 * * 0-6"
+            
+jobs:
+  info:
+    name: Rust Info
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rustup Show
+        shell: bash
+        run: rustup show
+      - name: Rustup Version
+        shell: bash
+        run: rustup --version
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo check
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rust-src
+      - run: cargo test --release
+      - run: cargo install cargo-expand
+      - run: cargo test --manifest-path tests/macro-tests/Cargo.toml -- --nocapture --test-threads=1
+      - run: cargo test --manifest-path tests/proc-macro-tests/Cargo.toml -- --nocapture --test-threads=1
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+      - run: cargo clippy -- -D warnings
+
+  minimal_versions:
+    name: Compile and test with minimal versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: taiki-e/install-action@cargo-hack
+      - uses: taiki-e/install-action@cargo-minimal-versions
+      - name: minimal-versions check
+        run: cargo minimal-versions check --workspace --all-features --ignore-private -v
+      - name: minimal-versions build
+        run: cargo minimal-versions build --workspace --all-features --ignore-private -v
+      - name: minimal-versions test
+        run: cargo minimal-versions test --release --workspace --all-features -v
+        continue-on-error: true
+
+  msrv:
+    name: Verify minimal supported rust version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: taiki-e/install-action@cargo-hack
+      - run: cargo hack check --rust-version --workspace --all-targets --ignore-private
