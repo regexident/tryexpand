@@ -14,9 +14,6 @@ use crate::{
     test::Test,
 };
 
-/// An extension for files containing `cargo expand` result.
-const EXPANDED_RS_SUFFIX: &str = "expanded.rs";
-
 #[derive(Debug)]
 pub(crate) struct Project {
     pub dir: PathBuf,
@@ -67,12 +64,7 @@ where
                 let test_id = base62::encode(hasher.finish()).to_lowercase();
                 format!("{name}_{test_id}")
             };
-            let expanded_path = path.with_extension(EXPANDED_RS_SUFFIX);
-            Test {
-                bin,
-                path,
-                expanded_path,
-            }
+            Test { bin, path }
         })
         .collect();
 

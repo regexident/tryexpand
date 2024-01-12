@@ -4,167 +4,233 @@ use yansi::Paint;
 
 use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
 
-pub(crate) fn report_outcome(path: &Path, expanded_path: &Path, outcome: &TestOutcome) {
+const COMPARISON_CONTEXT: usize = 2;
+const NON_COMPARISON_CONTEXT: usize = 5;
+
+pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
     match outcome {
-        TestOutcome::SnapshotMatch => {
-            ok(path, expanded_path);
+        TestOutcome::SnapshotMatch { path } => {
+            snapshot_match(source_path, path);
         }
-        TestOutcome::SnapshotMismatch { actual, expected } => {
-            snapshot_mismatch(path, expanded_path, expected, actual);
+        TestOutcome::SnapshotMismatch {
+            actual,
+            expected,
+            path,
+        } => {
+            snapshot_mismatch(source_path, path, expected, actual);
         }
-        TestOutcome::SnapshotCreated { after } => {
-            snapshot_created(path, expanded_path, after);
+        TestOutcome::SnapshotCreated { after, path } => {
+            snapshot_created(source_path, path, after);
         }
-        TestOutcome::SnapshotUpdated { before, after } => {
-            snapshot_updated(path, expanded_path, before, after);
+        TestOutcome::SnapshotUpdated {
+            before,
+            after,
+            path,
+        } => {
+            snapshot_updated(source_path, path, before, after);
         }
-        TestOutcome::SnapshotMissing => {
-            snapshot_missing(path, expanded_path);
+        TestOutcome::SnapshotExpected { path, content } => {
+            snapshot_expected(source_path, path, content);
         }
-        TestOutcome::UnexpectedSuccess { output } => {
-            unexpected_success(path, expanded_path, output);
+        TestOutcome::SnapshotUnexpected { path, content } => {
+            snapshot_unexpected(source_path, path, content);
         }
-        TestOutcome::UnexpectedFailure { output } => {
-            unexpected_failure(path, expanded_path, output);
+        TestOutcome::UnexpectedSuccess { stdout } => {
+            unexpected_success(source_path, stdout);
         }
-        TestOutcome::CommandFailure { output } => {
-            command_failure(path, expanded_path, output);
+        TestOutcome::UnexpectedFailure { stderr } => {
+            unexpected_failure(source_path, stderr);
         }
     }
 }
 
-pub(crate) fn ok(path: &Path, _expanded_path: &Path) {
+pub(crate) fn snapshot_match(path: &Path, _snapshot_path: &Path) {
     eprintln!("{path} - {}", Paint::green("ok"), path = path.display());
 }
 
-pub(crate) fn snapshot_mismatch(path: &Path, expanded_path: &Path, expected: &str, actual: &str) {
+pub(crate) fn snapshot_mismatch(path: &Path, snapshot_path: &Path, expected: &str, actual: &str) {
     eprintln!("{path} - {}", Paint::red("MISMATCH"), path = path.display());
     eprintln!("--------------------------");
+
     eprintln!(
         "Unexpected mismatch in file {path}:",
-        path = expanded_path.display()
+        path = snapshot_path.display()
     );
     eprintln!();
-
-    const NUM_CONTEXT_LINES: usize = 2;
-
-    print_diff(expected, actual, NUM_CONTEXT_LINES);
-
+    print_diff(expected, actual, COMPARISON_CONTEXT);
     eprintln!();
-    eprintln!(
-        "{}",
-        Paint::cyan(format!(
-            "help: To update the file run your tests with `{key}={val}`.",
-            key = TRYEXPAND_ENV_KEY,
-            val = TRYEXPAND_ENV_VAL_OVERWRITE
-        ))
-    );
+    print_overwrite_hint();
+
     eprintln!("--------------------------");
 }
 
-pub(crate) fn snapshot_created(path: &Path, expanded_path: &Path, after: &str) {
+pub(crate) fn snapshot_created(path: &Path, snapshot_path: &Path, after: &str) {
     eprintln!(
         "{path} - {}",
         Paint::yellow("created"),
         path = path.display()
     );
     eprintln!("--------------------------");
+
     eprintln!(
         "{}",
         Paint::green(format!(
-            "File created at path {path}",
-            path = expanded_path.display()
+            "Snapshot created at path {path}",
+            path = snapshot_path.display()
         ))
     );
+    eprintln!();
     print_diff("", after, 5);
+
     eprintln!("--------------------------");
 }
 
-pub(crate) fn snapshot_updated(path: &Path, expanded_path: &Path, before: &str, after: &str) {
+pub(crate) fn snapshot_updated(path: &Path, snapshot_path: &Path, before: &str, after: &str) {
     eprintln!(
         "{path} - {}",
         Paint::yellow("updated"),
         path = path.display()
     );
     eprintln!("--------------------------");
+
     eprintln!(
         "{}",
         Paint::green(format!(
-            "File updated at path {path}",
-            path = expanded_path.display()
+            "Snapshot updated at path {path}",
+            path = snapshot_path.display()
         ))
     );
-    print_diff(before, after, 5);
+    eprintln!();
+    print_diff(before, after, COMPARISON_CONTEXT);
+
     eprintln!("--------------------------");
 }
 
-pub(crate) fn snapshot_missing(path: &Path, expanded_path: &Path) {
+pub(crate) fn snapshot_expected(path: &Path, snapshot_path: &Path, output: &str) {
     eprintln!("{path} - {}", Paint::red("MISSING"), path = path.display());
     eprintln!("--------------------------");
+
     eprintln!(
         "{}",
         Paint::red(format!(
-            "Expected file at path {path}",
-            path = expanded_path.display()
+            "Expected snapshot at {path} with content:",
+            path = snapshot_path.display()
         ))
     );
     eprintln!();
-    eprintln!(
-        "{}",
-        Paint::cyan(format!(
-            "help: Run your tests with `{key}={val}` to have the files created automatically.",
-            key = TRYEXPAND_ENV_KEY,
-            val = TRYEXPAND_ENV_VAL_OVERWRITE
-        ))
-    );
+    print_trimmed_lines(output, Paint::red);
+    eprintln!();
+    print_overwrite_hint();
+
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_success(path: &Path, _expanded_path: &Path, output: &str) {
+pub(crate) fn snapshot_unexpected(path: &Path, snapshot_path: &Path, output: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
-    eprintln!("{}", Paint::red("Unexpected success:"));
+
+    eprintln!(
+        "{}",
+        Paint::red(format!(
+            "Unexpected snapshot at {path} with content:",
+            path = snapshot_path.display()
+        ))
+    );
     eprintln!();
-    let lines: Vec<&str> = output.lines().collect();
-    let trimmed_lines = trim_infix(&lines, 3, 3);
-    for line in trimmed_lines {
-        eprintln!("{}", Paint::red(line));
-    }
+    print_trimmed_lines(output, Paint::red);
+    eprintln!();
+    print_remove_hint(snapshot_path);
+
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_failure(path: &Path, _expanded_path: &Path, output: &str) {
+pub(crate) fn unexpected_success(path: &Path, output: &str) {
+    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("--------------------------");
+
+    eprintln!("{}", Paint::red("Unexpected success:"));
+    eprintln!();
+    print_trimmed_lines(output, Paint::red);
+
+    eprintln!("--------------------------");
+}
+
+pub(crate) fn unexpected_failure(path: &Path, output: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Unexpected failure:"));
     eprintln!();
-    eprintln!("{}", Paint::red(output.trim()));
+    print_trimmed_lines(output, Paint::red);
 
     eprintln!("--------------------------");
 }
 
-pub(crate) fn command_failure(path: &Path, _expanded_path: &Path, output: &str) {
+pub(crate) fn command_failure(path: &Path, error: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Command failure:"));
     eprintln!();
-    eprintln!("{}", Paint::red(output.trim()));
+    eprintln!("{}", Paint::red(error.trim()));
+    eprintln!();
 
-    // No `cargo expand` subcommand installed, make a suggestion
-    if output.contains("no such subcommand: `expand`") {
-        eprintln!(
-            "{}",
-            Paint::cyan("help: Perhaps, `cargo expand` is not installed?")
-        );
-        eprintln!("{}", Paint::cyan("      Install it by running:"));
-        eprintln!();
-        eprintln!("{}", Paint::cyan("      $ cargo install cargo-expand"));
-        eprintln!();
+    if error.contains("no such subcommand: `expand`") {
+        print_install_cargo_expand_hint();
     }
 
     eprintln!("--------------------------");
+}
+
+pub(crate) fn command_abortion(num_errors: usize) {
+    eprintln!(
+        "{}",
+        Paint::red(format!("Aborting due to {num_errors} previous errors."))
+    );
+    eprintln!();
+}
+
+fn print_install_cargo_expand_hint() {
+    eprintln!(
+        "{}",
+        Paint::cyan("help: Perhaps, `cargo expand` is not installed?")
+    );
+    eprintln!("{}", Paint::cyan("      Install it by running:"));
+    eprintln!();
+    eprintln!("{}", Paint::cyan("      $ cargo install cargo-expand"));
+}
+
+fn print_overwrite_hint() {
+    eprintln!(
+        "{}",
+        Paint::cyan(format!(
+            "help: To update the snapshot file run your tests with `{key}={val}`.",
+            key = TRYEXPAND_ENV_KEY,
+            val = TRYEXPAND_ENV_VAL_OVERWRITE
+        ))
+    );
+}
+
+fn print_remove_hint(path: &Path) {
+    let path = path.as_os_str();
+    eprintln!(
+        "{}",
+        Paint::cyan(format!(
+            "help: To remove the snapshot file run `rm {path:?}`.",
+        ))
+    );
+}
+
+fn print_trimmed_lines<F>(string: &str, f: F)
+where
+    F: Fn(String) -> Paint<String>,
+{
+    let context_len = NON_COMPARISON_CONTEXT;
+    let lines: Vec<&str> = string.lines().collect();
+    let trimmed_lines = trim_infix(lines.as_slice(), context_len, context_len);
+    for line in trimmed_lines {
+        eprintln!("{}", f(line.to_owned()));
+    }
 }
 
 fn print_diff(before: &str, after: &str, num_context_lines: usize) {

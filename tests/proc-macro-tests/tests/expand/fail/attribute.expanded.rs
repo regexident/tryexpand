@@ -1,7 +1,7 @@
-error: custom attribute panicked
- --> /tests/expand/fail/attribute.rs:4:1
-  |
-4 | #[my_proc_macro_attribute_panics]
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = help: message: test
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2018::*;
+#[macro_use]
+extern crate std;
+#[macro_use]
+extern crate proc_macro_tests;

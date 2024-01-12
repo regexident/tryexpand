@@ -1,7 +1,10 @@
-error: proc macro panicked
- --> /tests/expand/fail/macro.rs:5:5
-  |
-5 |     my_proc_macro_panics! { struct Test; }
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = help: message: test
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2018::*;
+#[macro_use]
+extern crate std;
+#[macro_use]
+extern crate proc_macro_tests;
+pub fn main() {
+    (/*ERROR*/)
+}
