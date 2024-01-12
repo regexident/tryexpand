@@ -24,7 +24,9 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- On failure two snapshots are now getting generated:
+  - the output from `stdout` gets saved to a `.expanded.rs` file
+  - the output from `stderr` gets saved to a `.error.txt` file
 
 ### Deprecated
 
