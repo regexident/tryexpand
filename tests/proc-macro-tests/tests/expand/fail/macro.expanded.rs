@@ -1,5 +1,5 @@
 error: proc macro panicked
-tests/fail/macro.rs:5:5
+tests/expand/fail/macro.rs:5:5
   |
 5 |     my_proc_macro_panics! { struct Test; }
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
