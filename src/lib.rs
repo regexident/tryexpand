@@ -4,12 +4,11 @@ use std::{ffi::OsStr, path::Path};
 
 mod cargo;
 mod error;
-mod expansion;
 mod manifest;
 mod message;
+mod normalization;
 mod project;
 mod run;
-mod rustflags;
 mod test;
 
 pub(crate) const TRYEXPAND_ENV_KEY: &str = "TRYEXPAND";
