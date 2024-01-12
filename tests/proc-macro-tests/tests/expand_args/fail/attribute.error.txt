@@ -1,0 +1,8 @@
+error: custom attribute panicked
+ --> /tests/expand_args/fail/attribute.rs:4:1
+  |
+4 | #[my_proc_macro_attribute_panics]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: test
+error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

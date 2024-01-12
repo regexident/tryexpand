@@ -15,6 +15,9 @@ pub(crate) const TRYEXPAND_ENV_KEY: &str = "TRYEXPAND";
 pub(crate) const TRYEXPAND_ENV_VAL_OVERWRITE: &str = "overwrite";
 pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 
+pub(crate) const EXPANDED_RS_FILE_SUFFIX: &str = "expanded.rs";
+pub(crate) const ERROR_LOG_FILE_SUFFIX: &str = "error.txt";
+
 use self::{project::Project, run::try_run_tests, test::TestExpectation};
 
 /// Attempts to expand macros in files that match glob pattern.

@@ -9,9 +9,9 @@ use serde::Serialize;
 
 use crate::{
     error::{Error, Result},
-    normalization::{failure_stderr, failure_stdout, success_stdout},
+    normalization::{failure_stderr, failure_stdout, success_stderr, success_stdout},
     project::Project,
-    test::Test,
+    test::{Evaluation, Test},
 };
 
 const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
@@ -64,9 +64,10 @@ fn make_rustflags_env() -> OsString {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub(crate) enum Expansion {
-    Success { stdout: String },
-    Failure { stderr: String },
+pub(crate) struct Expansion {
+    pub stdout: Option<String>,
+    pub stderr: Option<String>,
+    pub evaluation: Evaluation,
 }
 
 pub(crate) fn expand<I, S>(project: &Project, test: &Test, args: &Option<I>) -> Result<Expansion>
@@ -93,17 +94,26 @@ where
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    // Unfortunately `cargo expand` will sometimes return a success status,
-    // despite the expansion having produced errors in the log:
-    let stderr_contains_errors = stderr.lines().any(|line| line.starts_with("error:"));
-    let is_success = output.status.success() && !stderr_contains_errors;
+    let is_success = {
+        // Unfortunately `cargo expand` will sometimes return a success status,
+        // despite the expansion having produced errors in the log:
+        let found_errors = stderr.lines().any(|line| line.starts_with("error:"));
+
+        output.status.success() && !found_errors
+    };
 
     if is_success {
-        let stdout = success_stdout(stdout, project, test);
-        Ok(Expansion::Success { stdout })
+        Ok(Expansion {
+            stdout: success_stdout(stdout, project, test),
+            stderr: success_stderr(stderr, project, test),
+            evaluation: Evaluation::Success,
+        })
     } else {
-        let stderr = failure_stderr(stderr, project, test);
-        Ok(Expansion::Failure { stderr })
+        Ok(Expansion {
+            stdout: failure_stdout(stdout, project, test),
+            stderr: failure_stderr(stderr, project, test),
+            evaluation: Evaluation::Failure,
+        })
     }
 }
 

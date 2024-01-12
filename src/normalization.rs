@@ -4,10 +4,12 @@ use syn::{punctuated::Punctuated, Item, Meta, Token};
 
 use crate::{project::Project, test::Test};
 
-pub(crate) fn success_stdout(input: String, _project: &Project, _test: &Test) -> String {
+pub(crate) fn success_stdout(input: String, _project: &Project, _test: &Test) -> Option<String> {
     let mut syntax_tree = match syn::parse_file(&input) {
         Ok(syntax_tree) => syntax_tree,
-        Err(_) => return input.trim().to_owned(),
+        Err(_) => {
+            return post_process(input);
+        }
     };
 
     // Strip the following:
@@ -57,20 +59,28 @@ pub(crate) fn success_stdout(input: String, _project: &Project, _test: &Test) ->
         true
     });
 
-    let lines = prettyplease::unparse(&syntax_tree);
+    let output = prettyplease::unparse(&syntax_tree);
 
-    format!("{}\n", lines.trim_end_matches('\n'))
+    post_process(output)
 }
 
-pub(crate) fn failure_stdout(input: String, _project: &Project, _test: &Test) -> String {
-    input.trim().to_owned()
+pub(crate) fn success_stderr(input: String, _project: &Project, _test: &Test) -> Option<String> {
+    let output = input.trim().lines().collect::<Vec<_>>().join("\n");
+
+    post_process(output)
 }
 
-pub(crate) fn failure_stderr(input: String, project: &Project, test: &Test) -> String {
+pub(crate) fn failure_stdout(input: String, _project: &Project, _test: &Test) -> Option<String> {
+    let output = input.trim().lines().collect::<Vec<_>>().join("\n");
+
+    post_process(output)
+}
+
+pub(crate) fn failure_stderr(input: String, project: &Project, test: &Test) -> Option<String> {
     let replacements = std_err_replacements(project, test);
     let mut has_errors = false;
 
-    let mut output = input
+    let output = input
         .trim()
         .lines()
         .skip_while(|line| {
@@ -94,8 +104,7 @@ pub(crate) fn failure_stderr(input: String, project: &Project, test: &Test) -> S
         .collect::<Vec<_>>()
         .join("\n");
 
-    output.push('\n');
-    output
+    post_process(output)
 }
 
 fn std_err_replacements(project: &Project, test: &Test) -> [(String, String); 3] {
@@ -107,4 +116,28 @@ fn std_err_replacements(project: &Project, test: &Test) -> [(String, String); 3]
         (name, "<CRATE>".to_owned()),
         (src_path, "".to_owned()),
     ]
+}
+
+// Replaces string with `None`` if it is either empty or contains only whitespace
+// and ensures a trailing new-line otherwise.
+fn post_process(input: String) -> Option<String> {
+    if input.is_empty() {
+        return None;
+    }
+
+    let is_only_whitespace = input
+        .lines()
+        .all(|line| line.chars().all(|c| c.is_whitespace()));
+
+    if is_only_whitespace {
+        return None;
+    }
+
+    let mut output = input;
+
+    if !output.ends_with('\n') {
+        output.push('\n');
+    }
+
+    Some(output)
 }

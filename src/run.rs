@@ -18,9 +18,6 @@ use crate::{
 
 pub(crate) type TestSuiteExpectation = TestExpectation;
 
-/// An extension for files containing `cargo expand` result.
-const EXPANDED_RS_SUFFIX: &str = "expanded.rs";
-
 macro_rules! run_tests {
     ($paths:expr, $args:expr, $expectation:expr) => {
         // IMPORTANT: This only works as lone as all functions between
@@ -64,7 +61,11 @@ where
         .into_iter()
         .filter_map(|path| expand_globs(path).ok())
         .flatten()
-        .filter(|path| !path.to_string_lossy().ends_with(EXPANDED_RS_SUFFIX))
+        .filter(|path| {
+            !path
+                .to_string_lossy()
+                .ends_with(crate::EXPANDED_RS_FILE_SUFFIX)
+        })
         .collect();
 
     let paths: Vec<PathBuf> = Vec::from_iter(unique_paths);
@@ -84,20 +85,30 @@ where
 
     println!("Running {} macro expansion tests ...!", len);
 
-    let mut failures = vec![];
+    let mut failures = HashSet::new();
+
+    let max_errors = 2;
+    let mut command_errors = 0;
 
     for test in &project.tests {
-        // let path = test.path.as_path();
-        // let expanded_path = test.expanded_path.as_path();
+        let result = test.run(&project, &args, behavior, expectation, &mut |outcome| {
+            message::report_outcome(&test.path, &outcome);
 
-        let outcome = test.run(&project, &args, behavior, expectation)?;
+            match outcome.as_result() {
+                TestResult::Success => {}
+                TestResult::Failure => {
+                    failures.insert(test.path.to_owned());
+                }
+            }
+        });
 
-        message::report_outcome(&test.path, &test.expanded_path, &outcome);
+        if let Err(err) = result {
+            let error = err.to_string();
+            message::command_failure(&test.path, &error);
+            command_errors += 1;
 
-        match outcome.as_result() {
-            TestResult::Success => {}
-            TestResult::Failure => {
-                failures.push(test.path.to_owned());
+            if command_errors > max_errors {
+                message::command_abortion(command_errors);
             }
         }
     }
@@ -109,7 +120,10 @@ where
         writeln!(&mut message, "{} of {} tests failed:", failures.len(), len).unwrap();
         writeln!(&mut message).unwrap();
 
-        for failure in failures {
+        let mut sorted_failures = Vec::from_iter(failures);
+        sorted_failures.sort();
+
+        for failure in sorted_failures {
             writeln!(&mut message, "    {}", failure.display()).unwrap();
         }
 

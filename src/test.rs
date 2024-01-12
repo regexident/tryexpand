@@ -13,46 +13,66 @@ pub(crate) enum TestBehavior {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum TestExpectation {
+pub(crate) enum Evaluation {
     Success,
     Failure,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) enum TestResult {
-    Success,
-    Failure,
-}
+pub(crate) type TestExpectation = Evaluation;
+pub(crate) type TestResult = Evaluation;
 
 #[derive(Clone, Debug)]
 pub(crate) enum TestOutcome {
-    SnapshotMatch,
-    SnapshotMismatch { actual: String, expected: String },
-    SnapshotCreated { after: String },
-    SnapshotUpdated { before: String, after: String },
-    SnapshotMissing,
-    UnexpectedSuccess { output: String },
-    UnexpectedFailure { output: String },
-    CommandFailure { output: String },
+    SnapshotMatch {
+        path: PathBuf,
+    },
+    SnapshotMismatch {
+        path: PathBuf,
+        actual: String,
+        expected: String,
+    },
+    SnapshotCreated {
+        path: PathBuf,
+        after: String,
+    },
+    SnapshotUpdated {
+        path: PathBuf,
+        before: String,
+        after: String,
+    },
+    SnapshotExpected {
+        path: PathBuf,
+        content: String,
+    },
+    SnapshotUnexpected {
+        path: PathBuf,
+        content: String,
+    },
+    UnexpectedSuccess {
+        stdout: String,
+    },
+    UnexpectedFailure {
+        stderr: String,
+    },
 }
 
 impl TestOutcome {
     pub(crate) fn as_result(&self) -> TestResult {
         match self {
-            Self::SnapshotMatch => TestResult::Success,
+            Self::SnapshotMatch { .. } => TestResult::Success,
             Self::SnapshotMismatch { .. } => TestResult::Failure,
             Self::SnapshotCreated { .. } => TestResult::Success,
             Self::SnapshotUpdated { .. } => TestResult::Success,
-            Self::SnapshotMissing => TestResult::Failure,
+            Self::SnapshotExpected { .. } => TestResult::Failure,
+            Self::SnapshotUnexpected { .. } => TestResult::Failure,
             Self::UnexpectedSuccess { .. } => TestResult::Failure,
             Self::UnexpectedFailure { .. } => TestResult::Failure,
-            Self::CommandFailure { .. } => TestResult::Failure,
         }
     }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-enum ComparisonOutcome {
+enum Comparison {
     Match,
     Mismatch,
 }
@@ -61,7 +81,6 @@ enum ComparisonOutcome {
 pub(crate) struct Test {
     pub bin: String,
     pub path: PathBuf,
-    pub expanded_path: PathBuf,
 }
 
 impl Test {
@@ -71,78 +90,134 @@ impl Test {
         args: &Option<I>,
         behavior: TestBehavior,
         expectation: TestExpectation,
-    ) -> Result<TestOutcome>
+        observe: &mut dyn FnMut(TestOutcome),
+    ) -> Result<()>
     where
         I: IntoIterator<Item = S> + Clone,
         S: AsRef<OsStr>,
     {
-        let expanded_path = self.expanded_path.as_path();
+        let Expansion {
+            stdout,
+            stderr,
+            evaluation,
+        } = cargo::expand(project, self, args)?;
 
-        let expansion = cargo::expand(project, self, args)?;
+        // First we check for unexpected successes/failures and bail out right away:
+        match (evaluation, expectation) {
+            (Evaluation::Success, Evaluation::Failure) => {
+                let stdout = stdout.clone().expect("non-empty stdout");
+                observe(TestOutcome::UnexpectedSuccess { stdout });
+                return Ok(());
+            }
+            (Evaluation::Failure, Evaluation::Success) => {
+                let stderr = stderr.clone().expect("non-empty stderr");
+                observe(TestOutcome::UnexpectedFailure {
+                    stderr: stderr.clone(),
+                });
+                return Ok(());
+            }
+            (_, _) => {}
+        }
 
-        let actual = match &expansion {
-            cargo::Expansion::Success { stdout } => stdout,
-            cargo::Expansion::Failure { stderr } => stderr,
+        let stdout_snapshot_path = self.stdout_snapshot_path();
+        let stderr_snapshot_path = self.stderr_snapshot_path();
+
+        let snapshots = match evaluation {
+            Evaluation::Success => [
+                (&stdout_snapshot_path, stdout),
+                (&stderr_snapshot_path, None),
+            ],
+            Evaluation::Failure => [
+                (&stdout_snapshot_path, stdout),
+                (&stderr_snapshot_path, stderr),
+            ],
         };
 
-        if let (Expansion::Failure { .. }, TestExpectation::Success) = (&expansion, expectation) {
-            return Ok(TestOutcome::UnexpectedFailure {
-                output: actual.clone(),
-            });
-        }
+        for (snapshot_path, current) in snapshots {
+            let existing = if snapshot_path.exists() {
+                Some(String::from_utf8_lossy(&fs::read(snapshot_path)?).into_owned())
+            } else {
+                None
+            };
 
-        if let (Expansion::Success { .. }, TestExpectation::Failure) = (&expansion, expectation) {
-            return Ok(TestOutcome::UnexpectedSuccess {
-                output: actual.clone(),
-            });
-        }
-
-        if !expanded_path.exists() {
             match behavior {
+                // We either create snapshots if the user requested so:
                 TestBehavior::OverwriteFiles => {
-                    // Write a .expanded.rs file contents with an newline character at the end
-                    fs::write(expanded_path, actual)?;
+                    let Some(actual) = current else {
+                        continue;
+                    };
 
-                    return Ok(TestOutcome::SnapshotCreated {
-                        after: actual.clone(),
-                    });
-                }
-                TestBehavior::ExpectFiles => return Ok(TestOutcome::SnapshotMissing),
-            }
-        }
+                    if let Some(expected) = existing {
+                        if actual != expected {
+                            fs::write(snapshot_path, &actual)?;
+                        }
 
-        let expected = String::from_utf8_lossy(&fs::read(expanded_path)?).into_owned();
-
-        let outcome = match Self::compare(actual, &expected) {
-            ComparisonOutcome::Match => Ok(TestOutcome::SnapshotMatch),
-            ComparisonOutcome::Mismatch => {
-                match behavior {
-                    TestBehavior::OverwriteFiles => {
-                        // Write a .expanded.rs file contents with an newline character at the end
-                        fs::write(expanded_path, actual)?;
-
-                        Ok(TestOutcome::SnapshotUpdated {
+                        observe(TestOutcome::SnapshotUpdated {
                             before: expected.clone(),
                             after: actual.clone(),
-                        })
+                            path: snapshot_path.clone(),
+                        });
+                    } else {
+                        fs::write(snapshot_path, &actual)?;
+
+                        observe(TestOutcome::SnapshotCreated {
+                            after: actual.clone(),
+                            path: snapshot_path.clone(),
+                        });
                     }
-                    TestBehavior::ExpectFiles => Ok(TestOutcome::SnapshotMismatch {
-                        expected,
-                        actual: actual.clone(),
-                    }),
                 }
+                // Or otherwise check for existing snapshots:
+                TestBehavior::ExpectFiles => match (current, existing) {
+                    (None, None) => continue,
+                    (None, Some(expected)) => {
+                        observe(TestOutcome::SnapshotUnexpected {
+                            content: expected,
+                            path: snapshot_path.clone(),
+                        });
+                    }
+                    (Some(actual), None) => {
+                        observe(TestOutcome::SnapshotExpected {
+                            content: actual,
+                            path: snapshot_path.clone(),
+                        });
+                    }
+                    (Some(actual), Some(expected)) => {
+                        let comparison = Self::compare(&actual, &expected);
+                        match comparison {
+                            Comparison::Match => {
+                                observe(TestOutcome::SnapshotMatch {
+                                    path: snapshot_path.clone(),
+                                });
+                            }
+                            Comparison::Mismatch => {
+                                observe(TestOutcome::SnapshotMismatch {
+                                    expected,
+                                    actual: actual.clone(),
+                                    path: snapshot_path.clone(),
+                                });
+                            }
+                        }
+                    }
+                },
             }
         }
-        .unwrap_or_else(|err| TestOutcome::CommandFailure { output: err });
 
-        Ok(outcome)
+        Ok(())
     }
 
-    fn compare(actual: &str, expected: &str) -> ComparisonOutcome {
+    fn stdout_snapshot_path(&self) -> PathBuf {
+        self.path.with_extension(crate::EXPANDED_RS_FILE_SUFFIX)
+    }
+
+    fn stderr_snapshot_path(&self) -> PathBuf {
+        self.path.with_extension(crate::ERROR_LOG_FILE_SUFFIX)
+    }
+
+    fn compare(actual: &str, expected: &str) -> Comparison {
         if actual.lines().eq(expected.lines()) {
-            ComparisonOutcome::Match
+            Comparison::Match
         } else {
-            ComparisonOutcome::Mismatch
+            Comparison::Mismatch
         }
     }
 }

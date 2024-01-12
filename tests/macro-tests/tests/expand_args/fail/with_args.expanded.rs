@@ -1,10 +1,18 @@
-error: cannot find macro `test_feature_vec` in this scope
- --> /tests/expand_args/fail/with_args.rs:6:5
-  |
-6 |     test_feature_vec![1, 2, 3];
-  |     ^^^^^^^^^^^^^^^^
-error: cannot find macro `invalid` in this scope
- --> /tests/expand_args/fail/with_args.rs:8:5
-  |
-8 |     invalid![];
-  |     ^^^^^^^
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2018::*;
+#[macro_use]
+extern crate std;
+#[macro_use]
+extern crate macro_tests;
+pub fn main() {
+    {
+        let mut temp_vec = Vec::new();
+        temp_vec.push(1);
+        temp_vec.push(2);
+        temp_vec.push(3);
+        temp_vec
+    };
+    (/*ERROR*/);
+    (/*ERROR*/);
+}
