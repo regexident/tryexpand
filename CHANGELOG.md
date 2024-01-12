@@ -35,6 +35,7 @@ Please make sure to add your changes to the appropriate categories:
 ### Removed
 
 - Removed `scopeguard` crate from project's dependencies
+- Removed `serde_json` crate from project's dependencies
 
 ### Fixed
 
