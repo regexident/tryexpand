@@ -4,7 +4,7 @@ exclude = ["./tests/proc-macro-tests", "./tests/macro-tests"]
 
 [package]
 name = "tryexpand"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT OR Apache-2.0"

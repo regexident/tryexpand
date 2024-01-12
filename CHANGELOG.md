@@ -50,6 +50,6 @@ Please make sure to add your changes to the appropriate categories:
 
 - n/a
 
-## [0.1.0] - 2024-01-11
+## [0.1.0] - 2024-01-12
 
 Initial release.
