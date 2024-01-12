@@ -3,7 +3,6 @@ use std::{ffi::OsStr, fs, path::PathBuf};
 use crate::{
     cargo::{self, Expansion},
     error::Result,
-    expansion::{normalize_stderr_expansion, normalize_stdout_expansion},
     Project,
 };
 
@@ -79,30 +78,34 @@ impl Test {
     {
         let expanded_path = self.expanded_path.as_path();
 
-        let expansion = cargo::expand(project, &self.bin, args)?;
+        let expansion = cargo::expand(project, self, args)?;
 
         let actual = match &expansion {
-            cargo::Expansion::Success { stdout } => normalize_stdout_expansion(stdout.as_str()),
-            cargo::Expansion::Failure { stderr } => {
-                normalize_stderr_expansion(stderr.as_str(), project)
-            }
+            cargo::Expansion::Success { stdout } => stdout,
+            cargo::Expansion::Failure { stderr } => stderr,
         };
 
         if let (Expansion::Failure { .. }, TestExpectation::Success) = (&expansion, expectation) {
-            return Ok(TestOutcome::UnexpectedFailure { output: actual });
+            return Ok(TestOutcome::UnexpectedFailure {
+                output: actual.clone(),
+            });
         }
 
         if let (Expansion::Success { .. }, TestExpectation::Failure) = (&expansion, expectation) {
-            return Ok(TestOutcome::UnexpectedSuccess { output: actual });
+            return Ok(TestOutcome::UnexpectedSuccess {
+                output: actual.clone(),
+            });
         }
 
         if !expanded_path.exists() {
             match behavior {
                 TestBehavior::OverwriteFiles => {
                     // Write a .expanded.rs file contents with an newline character at the end
-                    fs::write(expanded_path, &actual)?;
+                    fs::write(expanded_path, actual)?;
 
-                    return Ok(TestOutcome::SnapshotCreated { after: actual });
+                    return Ok(TestOutcome::SnapshotCreated {
+                        after: actual.clone(),
+                    });
                 }
                 TestBehavior::ExpectFiles => return Ok(TestOutcome::SnapshotMissing),
             }
@@ -110,22 +113,23 @@ impl Test {
 
         let expected = String::from_utf8_lossy(&fs::read(expanded_path)?).into_owned();
 
-        let outcome = match Self::compare(&actual, &expected) {
+        let outcome = match Self::compare(actual, &expected) {
             ComparisonOutcome::Match => Ok(TestOutcome::SnapshotMatch),
             ComparisonOutcome::Mismatch => {
                 match behavior {
                     TestBehavior::OverwriteFiles => {
                         // Write a .expanded.rs file contents with an newline character at the end
-                        fs::write(expanded_path, &actual)?;
+                        fs::write(expanded_path, actual)?;
 
                         Ok(TestOutcome::SnapshotUpdated {
                             before: expected.clone(),
-                            after: actual,
+                            after: actual.clone(),
                         })
                     }
-                    TestBehavior::ExpectFiles => {
-                        Ok(TestOutcome::SnapshotMismatch { expected, actual })
-                    }
+                    TestBehavior::ExpectFiles => Ok(TestOutcome::SnapshotMismatch {
+                        expected,
+                        actual: actual.clone(),
+                    }),
                 }
             }
         }

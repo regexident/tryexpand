@@ -1,6 +1,4 @@
 use std::{
-    borrow::Cow,
-    collections::HashMap,
     env,
     ffi::{OsStr, OsString},
     io::BufRead,
@@ -11,7 +9,9 @@ use serde::Serialize;
 
 use crate::{
     error::{Error, Result},
+    normalization::{failure_stderr, failure_stdout, success_stdout},
     project::Project,
+    test::Test,
 };
 
 const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
@@ -69,7 +69,7 @@ pub(crate) enum Expansion {
     Failure { stderr: String },
 }
 
-pub(crate) fn expand<I, S>(project: &Project, bin: &str, args: &Option<I>) -> Result<Expansion>
+pub(crate) fn expand<I, S>(project: &Project, test: &Test, args: &Option<I>) -> Result<Expansion>
 where
     I: IntoIterator<Item = S> + Clone,
     S: AsRef<OsStr>,
@@ -78,7 +78,7 @@ where
     let cargo = cargo
         .arg("expand")
         .arg("--bin")
-        .arg(bin)
+        .arg(&test.bin)
         .arg("--theme")
         .arg("none");
 
@@ -90,66 +90,21 @@ where
         .output()
         .map_err(|err| Error::CargoExpandExecution(err.to_string()))?;
 
-    let name = &project.name;
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    let status = output.status;
-    let stdout = process_stdout(&output.stdout);
-    let (stderr, has_errors) = process_stderr(&output.stderr, name, bin);
-
-    let is_success = status.success() && !stdout.is_empty() && !has_errors;
+    // Unfortunately `cargo expand` will sometimes return a success status,
+    // despite the expansion having produced errors in the log:
+    let stderr_contains_errors = stderr.lines().any(|line| line.starts_with("error:"));
+    let is_success = output.status.success() && !stderr_contains_errors;
 
     if is_success {
+        let stdout = success_stdout(stdout, project, test);
         Ok(Expansion::Success { stdout })
     } else {
+        let stderr = failure_stderr(stderr, project, test);
         Ok(Expansion::Failure { stderr })
     }
-}
-
-fn process_stdout(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).into_owned()
-}
-
-fn process_stderr(bytes: &[u8], name: &str, bin: &str) -> (String, bool) {
-    let stderr = String::from_utf8_lossy(bytes);
-
-    let replacements = std_err_replacements(name, bin);
-    let mut has_errors = false;
-
-    let lines: Vec<Cow<'_, str>> = stderr
-        .lines()
-        .inspect(|&line| {
-            // Sometimes the `cargo expand` command returns a success status,
-            // despite an error having occurred, so we need to look for those:
-            has_errors |= line.starts_with("error: ");
-        })
-        .map(|line| {
-            // Sanitize output by stripping unstable (as in might change between runs)
-            // error output to prevent snapshots from getting dirty unintentionally:
-            replacements
-                .get(line)
-                .map(Cow::from)
-                .unwrap_or_else(|| Cow::from(line))
-        })
-        .collect();
-
-    let lines: Vec<&str> = lines
-        .iter()
-        .map(|line| line.as_ref())
-        .skip_while(|line| line.trim().is_empty())
-        .collect();
-
-    let stderr = lines.join("\n");
-    (stderr, has_errors)
-}
-
-fn std_err_replacements(name: &str, bin: &str) -> HashMap<String, String> {
-    fn error_pattern(name: &str, bin: &str) -> String {
-        format!("error: could not compile `{name}` (bin \"{bin}\") due to previous error")
-    }
-
-    let error = (error_pattern(name, bin), error_pattern("<CRATE>", "<BIN>"));
-
-    HashMap::from_iter([error])
 }
 
 /// Builds dependencies for macro expansion and pipes `cargo` output to `STDOUT`.
@@ -158,6 +113,24 @@ fn std_err_replacements(name: &str, bin: &str) -> HashMap<String, String> {
 /// for dependencies build process to be visible for user.
 pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
     use std::io::Write;
+
+    const IGNORED_LINES: [&str; 5] = [
+        "#![feature(prelude_import)]",
+        "#[prelude_import]",
+        "use std::prelude::",
+        "#[macro_use]",
+        "extern crate std;",
+    ];
+
+    fn line_should_be_ignored(line: &str) -> bool {
+        for check in IGNORED_LINES.iter() {
+            if line.starts_with(check) {
+                return true;
+            }
+        }
+
+        false
+    }
 
     println!("\n");
 
@@ -173,33 +146,14 @@ pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
 
     let reader = std::io::BufReader::new(stdout);
 
-    // Filter ignored lines and main.rs content
+    // Filter ignored lines and lib.rs content
     reader
         .lines()
         .map_while(std::io::Result::ok)
-        .filter(|line| !line.starts_with("fn main() {}"))
         .filter(|line| !line_should_be_ignored(line))
         .for_each(|line| {
             let _ = writeln!(std::io::stdout(), "{}", line);
         });
 
     Ok(())
-}
-
-const IGNORED_LINES: [&str; 5] = [
-    "#![feature(prelude_import)]",
-    "#[prelude_import]",
-    "use std::prelude::",
-    "#[macro_use]",
-    "extern crate std;",
-];
-
-fn line_should_be_ignored(line: &str) -> bool {
-    for check in IGNORED_LINES.iter() {
-        if line.starts_with(check) {
-            return true;
-        }
-    }
-
-    false
 }
