@@ -13,14 +13,14 @@ mod expand {
 
 mod expand_fail {
     #[test]
-    #[should_panic(expected = "tests failed")]
     pub fn pass() {
-        tryexpand::expand_fail(["tests/expand/pass/*.rs"]);
+        tryexpand::expand_fail(["tests/expand/fail/*.rs"]);
     }
 
     #[test]
+    #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand_fail(["tests/expand/fail/*.rs"]);
+        tryexpand::expand_fail(["tests/expand/pass/*.rs"]);
     }
 }
 
@@ -45,18 +45,18 @@ mod expand_args {
 
 mod expand_args_fail {
     #[test]
-    #[should_panic(expected = "tests failed")]
     pub fn pass() {
         tryexpand::expand_args_fail(
-            ["tests/expand_args/pass/*.rs"],
+            ["tests/expand_args/fail/*.rs"],
             ["--features", "test-feature"],
         );
     }
 
     #[test]
+    #[should_panic(expected = "tests failed")]
     pub fn fail() {
         tryexpand::expand_args_fail(
-            ["tests/expand_args/fail/*.rs"],
+            ["tests/expand_args/pass/*.rs"],
             ["--features", "placebo-test-feature"],
         );
     }
