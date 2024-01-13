@@ -2,6 +2,16 @@
 command = "cargo"
 args = ["test"]
 
+[tasks.test-other]
+command = "cargo"
+args = [
+    "test",
+    "--manifest-path",
+    "tests/other-tests/Cargo.toml",
+    "--",
+    "--test-threads=1",
+]
+
 [tasks.test-macros]
 command = "cargo"
 args = [
@@ -23,4 +33,4 @@ args = [
 ]
 
 [tasks.test-all]
-dependencies = ["test", "test-macros", "test-proc-macros"]
+dependencies = ["test", "test-other", "test-macros", "test-proc-macros"]

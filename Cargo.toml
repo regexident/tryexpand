@@ -1,6 +1,10 @@
 [workspace]
 members = []
-exclude = ["./tests/proc-macro-tests", "./tests/macro-tests"]
+exclude = [
+    "./tests/proc-macro-tests",
+    "./tests/macro-tests",
+    "./tests/other-tests",
+]
 
 [package]
 name = "tryexpand"

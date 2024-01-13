@@ -1,0 +1,14 @@
+[package]
+name = "other-tests"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+
+[dev-dependencies]
+tryexpand = { path = "../../" }
+
+[features]
+default = []
+test-feature = []
+placebo-test-feature = []
