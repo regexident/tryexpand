@@ -20,8 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `Options` type.
-- Added `expand_opts()` & `expand_opts_fail()` (replacing `expand_args()` & `expand_args_fail()`).
+- n/a
 
 ### Changed
 
@@ -30,6 +29,33 @@ Please make sure to add your changes to the appropriate categories:
 ### Deprecated
 
 - n/a
+
+### Removed
+
+- n/a
+
+### Fixed
+
+- n/a
+
+### Performance
+
+- n/a
+
+### Security
+
+- n/a
+
+### Other
+
+- n/a
+
+## [0.3.0] - 2024-01-13
+
+### Added
+
+- Added `Options` type.
+- Added `expand_opts()` & `expand_opts_fail()` (replacing `expand_args()` & `expand_args_fail()`).
 
 ### Removed
 
@@ -45,14 +71,6 @@ Please make sure to add your changes to the appropriate categories:
 ### Performance
 
 - Tests now properly share a single target directory, speeding up compilation times.
-
-### Security
-
-- n/a
-
-### Other
-
-- n/a
 
 ## [0.2.0] - 2024-01-12
 
