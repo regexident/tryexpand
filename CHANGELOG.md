@@ -38,6 +38,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Named errors (i.e. `error[E…]: …`) are now properly detected and included in error snapshots.
 - Generated `.extended.rs` files obtained from failures no longer include Rust prelude, etc.
+- No longer crashes when encountering an unexpectedly empty stdout/stderr, but reports an error instead.
 
 ### Performance
 
