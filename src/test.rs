@@ -1,9 +1,9 @@
-use std::{ffi::OsStr, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use crate::{
     cargo::{self, Expansion},
     error::Result,
-    Project,
+    Options, Project,
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -84,18 +84,14 @@ pub(crate) struct Test {
 }
 
 impl Test {
-    pub fn run<I, S>(
+    pub fn run(
         &self,
         project: &Project,
-        args: &Option<I>,
+        args: &Option<Options>,
         behavior: TestBehavior,
         expectation: TestExpectation,
         observe: &mut dyn FnMut(TestOutcome),
-    ) -> Result<()>
-    where
-        I: IntoIterator<Item = S> + Clone,
-        S: AsRef<OsStr>,
-    {
+    ) -> Result<()> {
         let Expansion {
             stdout,
             stderr,

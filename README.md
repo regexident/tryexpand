@@ -32,7 +32,7 @@ cargo install --dev tryexpand
 Then under your crate's `tests/` directory, create `tests.rs` file containing the following code:
 
 ```rust
-// Use `expand()` or `expand_args()` to assert successful expansion:
+// Use `expand()` or `expand_opts()` to assert successful expansion:
 #[test]
 pub fn pass() {
     tryexpand::expand(
@@ -40,7 +40,7 @@ pub fn pass() {
         ["tests/expand_pass/*.rs"]
     );
     // or if you need to pass additional CLI arguments:
-    tryexpand::expand_args(
+    tryexpand::expand_opts(
         // One or more glob patterns:
         ["tests/expand_pass/*.rs"],
         // Arguments to pass to `cargo expand` command:
@@ -48,7 +48,7 @@ pub fn pass() {
     );
 }
 
-// Use `expand_fail()` or `expand_args_fail()` to assert unsuccessful expansion:
+// Use `expand_fail()` or `expand_opts_fail()` to assert unsuccessful expansion:
 #[test]
 pub fn fail() {
     tryexpand::expand_fail(
@@ -56,7 +56,7 @@ pub fn fail() {
         ["tests/expand_fail/*.rs"]
     );
     // or if you need to pass additional CLI arguments:
-    tryexpand::expand_args_fail(
+    tryexpand::expand_opts_fail(
         // One or more glob patterns:
         ["tests/expand_fail/*.rs"],
         // Arguments to pass to `cargo expand` command:

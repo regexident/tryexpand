@@ -1,5 +1,5 @@
 error: expected one of `!` or `::`, found `<eof>`
- --> /tests/expand_args/fail/garbage.rs:1:1
+ --> /tests/expand_opts/fail/garbage.rs:1:1
   |
 1 | qwertyuiop
   | ^^^^^^^^^^ expected one of `!` or `::`

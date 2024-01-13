@@ -20,7 +20,8 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Added `Options` type.
+- Added `expand_opts()` & `expand_opts_fail()` (replacing `expand_args()` & `expand_args_fail()`).
 
 ### Changed
 
@@ -32,7 +33,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Removed
 
-- n/a
+- Removed `expand_args()` & `expand_args_fail()` (in favor of `expand_opts()` & `expand_opts_fail()`).
 
 ### Fixed
 
