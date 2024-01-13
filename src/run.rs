@@ -19,11 +19,11 @@ pub(crate) type TestSuiteExpectation = TestExpectation;
 
 macro_rules! run_tests {
     ($paths:expr, $args:expr, $expectation:expr) => {
+        use std::hash::{Hash as _, Hasher as _};
+
         // IMPORTANT: This only works as lone as all functions between
         // the public API and this call are marked with `#[track_caller]`:
         let caller_location = ::std::panic::Location::caller();
-
-        use std::hash::{Hash as _, Hasher as _};
 
         let mut hasher = ::std::collections::hash_map::DefaultHasher::default();
         caller_location.file().hash(&mut hasher);
@@ -129,14 +129,18 @@ where
 }
 
 fn test_behavior() -> Result<TestBehavior> {
-    let Some(var) = std::env::var_os(TRYEXPAND_ENV_KEY) else {
+    let key = TRYEXPAND_ENV_KEY;
+    let Some(var) = std::env::var_os(key) else {
         return Ok(TestBehavior::ExpectFiles);
     };
     let value = var.to_string_lossy().into_owned();
     match value.as_str() {
         TRYEXPAND_ENV_VAL_EXPECT => Ok(TestBehavior::ExpectFiles),
         TRYEXPAND_ENV_VAL_OVERWRITE => Ok(TestBehavior::OverwriteFiles),
-        _ => Err(Error::UnrecognizedEnv(value)),
+        _ => Err(Error::UnrecognizedEnv {
+            key: key.to_owned(),
+            value,
+        }),
     }
 }
 
