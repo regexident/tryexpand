@@ -4,7 +4,15 @@ use syn::{punctuated::Punctuated, Item, Meta, Token};
 
 use crate::{project::Project, test::Test};
 
-pub(crate) fn success_stdout(input: String, _project: &Project, _test: &Test) -> Option<String> {
+pub(crate) fn success_stdout(input: String, project: &Project, test: &Test) -> Option<String> {
+    stdout(input, project, test)
+}
+
+pub(crate) fn failure_stdout(input: String, project: &Project, test: &Test) -> Option<String> {
+    stdout(input, project, test)
+}
+
+fn stdout(input: String, _project: &Project, _test: &Test) -> Option<String> {
     let mut syntax_tree = match syn::parse_file(&input) {
         Ok(syntax_tree) => syntax_tree,
         Err(_) => {
@@ -64,19 +72,15 @@ pub(crate) fn success_stdout(input: String, _project: &Project, _test: &Test) ->
     post_process(output)
 }
 
-pub(crate) fn success_stderr(input: String, _project: &Project, _test: &Test) -> Option<String> {
-    let output = input.trim().lines().collect::<Vec<_>>().join("\n");
-
-    post_process(output)
-}
-
-pub(crate) fn failure_stdout(input: String, _project: &Project, _test: &Test) -> Option<String> {
-    let output = input.trim().lines().collect::<Vec<_>>().join("\n");
-
-    post_process(output)
+pub(crate) fn success_stderr(input: String, project: &Project, test: &Test) -> Option<String> {
+    stderr(input, project, test)
 }
 
 pub(crate) fn failure_stderr(input: String, project: &Project, test: &Test) -> Option<String> {
+    stderr(input, project, test)
+}
+
+fn stderr(input: String, project: &Project, test: &Test) -> Option<String> {
     let replacements = std_err_replacements(project, test);
 
     let trimmed_input = input.trim();
