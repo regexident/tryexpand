@@ -154,13 +154,13 @@ impl Test {
                     if let Some(expected) = existing {
                         if actual != expected {
                             fs::write(snapshot_path, &actual)?;
-                        }
 
-                        observe(TestOutcome::SnapshotUpdated {
-                            before: expected.clone(),
-                            after: actual.clone(),
-                            path: snapshot_path.clone(),
-                        });
+                            observe(TestOutcome::SnapshotUpdated {
+                                before: expected.clone(),
+                                after: actual.clone(),
+                                path: snapshot_path.clone(),
+                            });
+                        }
                     } else {
                         fs::write(snapshot_path, &actual)?;
 
