@@ -1,6 +1,6 @@
 //! Test harness for macro expansion.
 
-use std::{ffi::OsStr, path::Path};
+use std::{collections::HashMap, path::Path};
 
 mod cargo;
 mod error;
@@ -36,7 +36,7 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, Option::<Vec<String>>::None, TestExpectation::Success);
+    run::run_tests!(paths, None, TestExpectation::Success);
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -55,33 +55,60 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, Option::<Vec<String>>::None, TestExpectation::Failure);
+    run::run_tests!(paths, None, TestExpectation::Failure);
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand`]: expand/fn.expand.html
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args<Ip, P, Ia, A>(paths: Ip, args: Ia)
+pub fn expand_opts<I, P>(paths: I, options: Options)
 where
-    Ip: IntoIterator<Item = P>,
+    I: IntoIterator<Item = P>,
     P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
 {
-    run::run_tests!(paths, Some(args), TestExpectation::Success);
+    run::run_tests!(paths, Some(options), TestExpectation::Success);
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
 ///
 /// [`expand_fail`]: expand/fn.expand_fail.html
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_args_fail<Ip, P, Ia, A>(paths: Ip, args: Ia)
+pub fn expand_opts_fail<I, P>(paths: I, options: Options)
 where
-    Ip: IntoIterator<Item = P>,
+    I: IntoIterator<Item = P>,
     P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
 {
-    run::run_tests!(paths, Some(args), TestExpectation::Failure);
+    run::run_tests!(paths, Some(options), TestExpectation::Failure);
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct Options {
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+}
+
+impl Options {
+    pub fn args<I, T>(mut self, args: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: AsRef<str>,
+    {
+        self.args = Vec::from_iter(args.into_iter().map(|arg| arg.as_ref().to_owned()));
+        self
+    }
+
+    pub fn env<I, K, V>(mut self, env: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.env = HashMap::from_iter(env.into_iter().map(|(key, value)| {
+            let key = key.as_ref().to_owned();
+            let value = value.as_ref().to_owned();
+            (key, value)
+        }));
+        self
+    }
 }

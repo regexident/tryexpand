@@ -2,7 +2,6 @@ use core::panic;
 use std::{
     collections::HashSet,
     env,
-    ffi::OsStr,
     fmt::Write,
     iter::FromIterator,
     path::{Path, PathBuf},
@@ -13,7 +12,7 @@ use crate::{
     message,
     project::Project,
     test::{TestBehavior, TestExpectation, TestResult},
-    TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
+    Options, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
 pub(crate) type TestSuiteExpectation = TestExpectation;
@@ -45,17 +44,15 @@ macro_rules! run_tests {
 pub(crate) use run_tests;
 
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub(crate) fn try_run_tests<Ip, P, Ia, A>(
-    paths: Ip,
-    args: Option<Ia>,
+pub(crate) fn try_run_tests<I, P>(
+    paths: I,
+    args: Option<Options>,
     test_suite_id: &str,
     expectation: TestSuiteExpectation,
 ) -> Result<()>
 where
-    Ip: IntoIterator<Item = P>,
+    I: IntoIterator<Item = P>,
     P: AsRef<Path>,
-    Ia: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
 {
     let unique_paths: HashSet<PathBuf> = paths
         .into_iter()

@@ -24,40 +24,40 @@ mod expand_fail {
     }
 }
 
-mod expand_args {
+mod expand_opts {
     #[test]
     pub fn pass() {
-        tryexpand::expand_args(
-            ["tests/expand_args/pass/*.rs"],
-            ["--features", "test-feature"],
+        tryexpand::expand_opts(
+            ["tests/expand_opts/pass/*.rs"],
+            tryexpand::Options::default().args(["--features", "test-feature"]),
         );
     }
 
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand_args(
-            ["tests/expand_args/fail/*.rs"],
-            ["--features", "placebo-test-feature"],
+        tryexpand::expand_opts(
+            ["tests/expand_opts/fail/*.rs"],
+            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
         );
     }
 }
 
-mod expand_args_fail {
+mod expand_opts_fail {
     #[test]
     pub fn pass() {
-        tryexpand::expand_args_fail(
-            ["tests/expand_args/fail/*.rs"],
-            ["--features", "test-feature"],
+        tryexpand::expand_opts_fail(
+            ["tests/expand_opts/fail/*.rs"],
+            tryexpand::Options::default().args(["--features", "test-feature"]),
         );
     }
 
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand_args_fail(
-            ["tests/expand_args/pass/*.rs"],
-            ["--features", "placebo-test-feature"],
+        tryexpand::expand_opts_fail(
+            ["tests/expand_opts/pass/*.rs"],
+            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
         );
     }
 }

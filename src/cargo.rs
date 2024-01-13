@@ -1,9 +1,4 @@
-use std::{
-    env,
-    ffi::{OsStr, OsString},
-    io::BufRead,
-    process::Command,
-};
+use std::{env, ffi::OsString, io::BufRead, process::Command};
 
 use serde::Serialize;
 
@@ -12,6 +7,7 @@ use crate::{
     normalization::{failure_stderr, failure_stdout, success_stderr, success_stdout},
     project::Project,
     test::{Evaluation, Test},
+    Options,
 };
 
 const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
@@ -70,11 +66,11 @@ pub(crate) struct Expansion {
     pub evaluation: Evaluation,
 }
 
-pub(crate) fn expand<I, S>(project: &Project, test: &Test, args: &Option<I>) -> Result<Expansion>
-where
-    I: IntoIterator<Item = S> + Clone,
-    S: AsRef<OsStr>,
-{
+pub(crate) fn expand(
+    project: &Project,
+    test: &Test,
+    options: &Option<Options>,
+) -> Result<Expansion> {
     let mut cargo = cargo(project);
     let cargo = cargo
         .arg("expand")
@@ -83,8 +79,12 @@ where
         .arg("--theme")
         .arg("none");
 
-    if let Some(args) = args {
-        cargo.args(args.clone());
+    if let Some(options) = options {
+        cargo.args(&options.args);
+
+        for (key, value) in &options.env {
+            cargo.env(key, value);
+        }
     }
 
     let output = cargo

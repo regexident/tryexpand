@@ -9,17 +9,17 @@ pub fn expand_fail() {
 }
 
 #[test]
-pub fn expand_args() {
-    tryexpand::expand_args(
-        ["tests/expand_args/pass/*.rs"],
-        ["--features", "test-feature"],
+pub fn expand_opts() {
+    tryexpand::expand_opts(
+        ["tests/expand_opts/pass/*.rs"],
+        tryexpand::Options::default().args(["--features", "test-feature"]),
     );
 }
 
 #[test]
-pub fn expand_args_fail() {
-    tryexpand::expand_args_fail(
-        ["tests/expand_args/fail/*.rs"],
-        ["--features", "placebo-test-feature"],
+pub fn expand_opts_fail() {
+    tryexpand::expand_opts_fail(
+        ["tests/expand_opts/fail/*.rs"],
+        tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
     );
 }
