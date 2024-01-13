@@ -44,7 +44,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Performance
 
-- n/a
+- Tests now properly share a single target directory, speeding up compilation times.
 
 ### Security
 

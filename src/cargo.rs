@@ -19,7 +19,7 @@ fn raw_cargo() -> Command {
 fn cargo(project: &Project) -> Command {
     let mut cmd = raw_cargo();
     cmd.current_dir(&project.dir);
-    cmd.env("CARGO_TARGET_DIR", &project.inner_target_dir);
+    cmd.env("CARGO_TARGET_DIR", &project.target_dir);
     cmd.env(RUSTFLAGS_ENV_KEY, make_rustflags_env());
     cmd
 }
