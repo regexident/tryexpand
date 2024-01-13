@@ -1,0 +1,6 @@
+error: cannot find macro `non_existent_macro` in this scope
+ --> /tests/expand/fail/unknown_macro.rs:2:5
+  |
+2 |     non_existent_macro!();
+  |     ^^^^^^^^^^^^^^^^^^
+error: could not compile `<CRATE>` (bin "<BIN>") due to previous error
