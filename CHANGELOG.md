@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Named errors (i.e. `error[E…]: …`) are now properly detected and included in error snapshots
 
 ### Performance
 
