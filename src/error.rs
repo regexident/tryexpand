@@ -20,8 +20,8 @@ pub(crate) enum Error {
     GlobPattern(#[from] glob::PatternError),
     #[error("could not find 'CARGO_PKG_NAME' env var")]
     CargoPkgName,
-    #[error("unrecognized value of 'TRYEXPAND_ENV_KEY' env var: '{0}'")]
-    UnrecognizedEnv(String),
+    #[error("unrecognized environment variable value: '{key}={value}'")]
+    UnrecognizedEnv { key: String, value: String },
     #[error("unexpectedly encountered an empty stdout log for a successful test")]
     UnexpectedEmptyStdOut,
     #[error("unexpectedly encountered an empty stderr log for an unsuccessful test")]

@@ -89,7 +89,7 @@ cargo test -- --no-capture
 
 Each `tryexpand` test will invoke the `cargo expand` command on each of the source files that matches the glob pattern and will compare the expansion result with the corresponding `*.expanded.rs` file.
 
-If the environment variable `TRYEXPAND=overwrite` is provided, then `*.expanded.rs` snapshot files will
+If the environment variable `TRYEXPAND=overwrite` is provided (e.g. `$ TRYEXPAND=overwrite cargo test`), then `*.expanded.rs` snapshot files will
 be created, or overwritten, if one already exists. Snapshot files should get checked into version control.
 
 Hand-writing `*.expanded.rs` files is not recommended.
@@ -108,6 +108,12 @@ Usage of wildcards for multiple files will group them under a single temporary c
 [More info](https://en.wikipedia.org/wiki/Glob_(programming)) on how glob patterns work.
 
 See [tests/macro-tests](tests/macro-tests) and [tests/proc-macro-tests](tests/proc-macro-tests) as a reference.
+
+### Debugging
+
+For each `expand()`-like method call within your tests a temporary and uniquely named Rust project will get generated within `$CARGO_TARGET_DIR/target/tests/`.
+By default these projects will get deleted upon test completion (regardless of the outcome).
+If you wish to take a look at the actual code/projects being expanded you can provide `TRYEXPAND_KEEP_ARTIFACTS=1` (e.g. `$ TRYEXPAND_KEEP_ARTIFACTS=1 cargo test`) and `tryexpand` will skip the cleanup.
 
 ## Contributing
 
