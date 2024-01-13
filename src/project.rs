@@ -19,7 +19,7 @@ pub(crate) struct Project {
     pub dir: PathBuf,
     pub manifest_dir: PathBuf,
     /// Used for the inner runs of cargo()
-    pub inner_target_dir: PathBuf,
+    pub target_dir: PathBuf,
     pub name: String,
     pub tests: Vec<Test>,
 }
@@ -29,7 +29,9 @@ impl Project {
     where
         I: IntoIterator<Item = PathBuf>,
     {
-        let manifest_path = "./Cargo.toml";
+        let manifest_path = "Cargo.toml";
+
+        let current_dir = std::env::current_dir().expect("current working directory");
 
         let root_manifest = Manifest::from_path(manifest_path).map_err(Error::CargoMetadata)?;
         let workspace_manifest = manifest::workspace_manifest(&root_manifest);
@@ -40,7 +42,7 @@ impl Project {
 
         let target_dir = env::var_os("CARGO_TARGET_DIR")
             .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("./target"));
+            .unwrap_or_else(|| current_dir.join("target"));
         let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")
             .map(PathBuf::from)
             .ok_or(Error::CargoManifestDir)?;
@@ -50,7 +52,7 @@ impl Project {
         let test_crate_name = format!("{crate_name}_{test_suite_id}");
         let dir = tests_dir.join(&test_crate_name);
 
-        let inner_target_dir = tests_dir.join("tryexpand");
+        let target_dir = tests_dir.join("tryexpand");
 
         let name = test_crate_name.clone();
 
@@ -75,7 +77,7 @@ impl Project {
         let project = Project {
             dir,
             manifest_dir,
-            inner_target_dir,
+            target_dir,
             name,
             tests,
         };
@@ -103,7 +105,7 @@ impl Project {
         fs::write(project.dir.join("Cargo.toml"), manifest_toml)?;
         fs::write(project.dir.join("lib.rs"), b"\n")?;
 
-        fs::create_dir_all(&project.inner_target_dir)?;
+        fs::create_dir_all(&project.target_dir)?;
 
         cargo::build_dependencies(&project)?;
 
