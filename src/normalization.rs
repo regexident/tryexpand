@@ -78,17 +78,45 @@ pub(crate) fn failure_stdout(input: String, _project: &Project, _test: &Test) ->
 
 pub(crate) fn failure_stderr(input: String, project: &Project, test: &Test) -> Option<String> {
     let replacements = std_err_replacements(project, test);
-    let mut has_errors = false;
 
-    let output = input
-        .trim()
+    let trimmed_input = input.trim();
+
+    let output = trimmed_input
         .lines()
         .skip_while(|line| {
             // Sometimes the `cargo expand` command returns a success status,
             // despite an error having occurred, so we need to look for those:
-            has_errors |= line.starts_with("error: ");
 
-            !has_errors
+            // Example:
+            // ```
+            // ...
+            // error[E0433]: failed to resolve: use of undeclared crate or module `pwyxfa`
+            // --> /tests/expand/fail/test.rs:1:1
+            // |
+            // 1 | pwyxfa::skpwbd! {
+            // | ^^^^^^ use of undeclared crate or module `pwyxfa`
+            // For more information about this error, try `rustc --explain E0433`.
+            // error: could not compile `<CRATE>` (bin "<BIN>") due to previous error
+            // ...
+            // ```
+            if line.starts_with("error[") {
+                return false;
+            }
+
+            // ```
+            // error: expected item, found `1234`
+            // --> /tests/expand/fail/test.rs:1:1
+            // |
+            // 1 | 1234
+            // | ^^^^ expected item
+            // |
+            // ...
+            // ```
+            if line.starts_with("error:") {
+                return false;
+            }
+
+            true
         })
         .map(|line| {
             replacements
