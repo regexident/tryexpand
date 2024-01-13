@@ -105,12 +105,16 @@ impl Test {
         // First we check for unexpected successes/failures and bail out right away:
         match (evaluation, expectation) {
             (Evaluation::Success, Evaluation::Failure) => {
-                let stdout = stdout.clone().expect("non-empty stdout");
+                let Some(stdout) = stdout.clone() else {
+                    return Err(crate::error::Error::UnexpectedEmptyStdOut);
+                };
                 observe(TestOutcome::UnexpectedSuccess { stdout });
                 return Ok(());
             }
             (Evaluation::Failure, Evaluation::Success) => {
-                let stderr = stderr.clone().expect("non-empty stderr");
+                let Some(stderr) = stderr.clone() else {
+                    return Err(crate::error::Error::UnexpectedEmptyStdErr);
+                };
                 observe(TestOutcome::UnexpectedFailure {
                     stderr: stderr.clone(),
                 });
