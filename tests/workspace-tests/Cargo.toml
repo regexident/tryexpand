@@ -1,0 +1,13 @@
+[workspace]
+members = ["./member-tests"]
+exclude = ["./excluded-tests"]
+
+[package]
+name = "root-tests"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+
+[dev-dependencies]
+tryexpand = { path = "../../" }
