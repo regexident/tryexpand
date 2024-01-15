@@ -15,6 +15,12 @@ mod expand {
     pub fn no_paths_provided() {
         tryexpand::expand(Vec::<&str>::new());
     }
+
+    #[test]
+    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
+    pub fn no_files_found() {
+        tryexpand::expand(["tests/expand/pass/*.rs", "no/matches/for/this/path"]);
+    }
 }
 
 mod expand_fail {
@@ -53,6 +59,15 @@ mod expand_opts {
     pub fn no_paths_provided() {
         tryexpand::expand_opts(
             Vec::<&str>::new(),
+            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
+    pub fn no_files_found() {
+        tryexpand::expand_opts(
+            ["tests/expand/pass/*.rs", "no/matches/for/this/path"],
             tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
         );
     }

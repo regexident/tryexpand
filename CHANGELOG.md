@@ -29,6 +29,11 @@ Please make sure to add your changes to the appropriate categories:
   - Calling `expand_opts()` with an empty list of file patterns will fail.
   - Calling `expand_fail()` with an empty list of file patterns will fail.
   - Calling `expand_opts_fail()` with an empty list of file patterns will fail.
+- Passing file patterns that match no files is now considered a failure:
+  - Calling `expand()` with a file pattern that matches no files will fail.
+  - Calling `expand_opts()` with a file pattern that matches no files will fail.
+  - Calling `expand_fail()` with a file pattern that matches no files will fail.
+  - Calling `expand_opts_fail()` with a file pattern that matches no files will fail.
 
 ### Deprecated
 
