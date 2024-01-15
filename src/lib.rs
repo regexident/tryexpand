@@ -1,12 +1,13 @@
 //! Test harness for macro expansion.
 
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 mod cargo;
 mod error;
 mod manifest;
 mod message;
 mod normalization;
+mod options;
 mod project;
 mod test;
 mod test_suite;
@@ -20,6 +21,8 @@ pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFA
 
 pub(crate) const EXPAND_OUT_RS_FILE_SUFFIX: &str = "expand.out.rs";
 pub(crate) const EXPAND_ERR_TXT_FILE_SUFFIX: &str = "expand.err.txt";
+
+pub use self::options::Options;
 
 use crate::{test::TestPlan, test_suite::test_behavior_from_env};
 
@@ -143,35 +146,4 @@ where
         options: options,
         expectation: TestExpectation::Failure
     )
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct Options {
-    pub args: Vec<String>,
-    pub env: HashMap<String, String>,
-}
-
-impl Options {
-    pub fn args<I, T>(mut self, args: I) -> Self
-    where
-        I: IntoIterator<Item = T>,
-        T: AsRef<str>,
-    {
-        self.args = Vec::from_iter(args.into_iter().map(|arg| arg.as_ref().to_owned()));
-        self
-    }
-
-    pub fn env<I, K, V>(mut self, env: I) -> Self
-    where
-        I: IntoIterator<Item = (K, V)>,
-        K: AsRef<str>,
-        V: AsRef<str>,
-    {
-        self.env = HashMap::from_iter(env.into_iter().map(|(key, value)| {
-            let key = key.as_ref().to_owned();
-            let value = value.as_ref().to_owned();
-            (key, value)
-        }));
-        self
-    }
 }
