@@ -1,11 +1,11 @@
 [workspace]
 members = []
 exclude = [
-    "./tests/proc-macro-tests",
     "./tests/macro-tests",
     "./tests/other-tests",
-    "./tests/workspace-tests",
+    "./tests/proc-macro-tests",
     "./tests/virtual-workspace-tests",
+    "./tests/workspace-tests",
 ]
 resolver = "2"
 
