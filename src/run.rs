@@ -60,15 +60,49 @@ where
         panic!("no file patterns provided");
     }
 
-    let unique_paths: HashSet<PathBuf> = patterns
+    let paths_per_pattern: Vec<(PathBuf, Vec<PathBuf>)> = patterns
         .into_iter()
-        .filter_map(|path| expand_globs(path).ok())
-        .flatten()
-        .filter(|path| {
-            !path
-                .to_string_lossy()
-                .ends_with(crate::EXPAND_OUT_RS_FILE_SUFFIX)
+        .map(|pattern| {
+            expand_globs(&pattern).map(|paths| {
+                (
+                    pattern.as_ref().to_owned(),
+                    paths
+                        .into_iter()
+                        .filter(|path| {
+                            !path
+                                .to_string_lossy()
+                                .ends_with(crate::EXPAND_OUT_RS_FILE_SUFFIX)
+                        })
+                        .collect(),
+                )
+            })
         })
+        .collect::<Result<_>>()?;
+
+    let (without_matches, with_matches): (Vec<_>, Vec<_>) = paths_per_pattern
+        .iter()
+        .partition(|(_, paths)| paths.is_empty());
+
+    if !without_matches.is_empty() {
+        let unique_patterns: HashSet<&PathBuf> = without_matches
+            .into_iter()
+            .map(|(pattern, _)| pattern)
+            .collect();
+
+        let sorted_patterns = Vec::from_iter(unique_patterns);
+
+        let mut error = String::new();
+        writeln!(&mut error, "no matching files found for:").unwrap();
+        for pattern in sorted_patterns {
+            writeln!(&mut error, "    {}", pattern.display()).unwrap();
+        }
+
+        panic!("{}", error);
+    }
+
+    let unique_paths: HashSet<PathBuf> = with_matches
+        .into_iter()
+        .flat_map(|(_, paths)| paths.clone())
         .collect();
 
     let paths: Vec<PathBuf> = Vec::from_iter(unique_paths);
