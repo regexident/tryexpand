@@ -24,7 +24,8 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Updated dependencies:
+  - `serde` from `1.0.105` to `1.0.194`
 
 ### Deprecated
 

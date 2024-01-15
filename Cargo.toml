@@ -28,7 +28,7 @@ cargo_toml = "0.18.0"
 diff = "0.1"
 glob = "0.3"
 prettyplease = "0.2"
-serde = { version = "1.0.105", features = ["derive"] }
+serde = { version = "1.0.195", features = ["derive"] }
 syn = { version = "2", features = ["full"] }
 thiserror = "1.0.56"
 yansi = "0.5.1"
