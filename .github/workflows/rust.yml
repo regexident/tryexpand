@@ -44,8 +44,8 @@ jobs:
           components: rust-src
       - run: cargo test --release
       - run: cargo install cargo-expand
-      - run: cargo test --manifest-path tests/macro-tests/Cargo.toml -- --nocapture --test-threads=1
-      - run: cargo test --manifest-path tests/proc-macro-tests/Cargo.toml -- --nocapture --test-threads=1
+      - run: cargo install cargo-make
+      - run: cargo make test-all
 
   fmt:
     name: Rustfmt
