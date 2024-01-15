@@ -9,6 +9,12 @@ mod expand {
     pub fn fail() {
         tryexpand::expand(["tests/expand/fail/*.rs"]);
     }
+
+    #[test]
+    #[should_panic(expected = "no file patterns provided")]
+    pub fn no_paths_provided() {
+        tryexpand::expand(Vec::<&str>::new());
+    }
 }
 
 mod expand_fail {
@@ -38,6 +44,15 @@ mod expand_opts {
     pub fn fail() {
         tryexpand::expand_opts(
             ["tests/expand_opts/fail/*.rs"],
+            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "no file patterns provided")]
+    pub fn no_paths_provided() {
+        tryexpand::expand_opts(
+            Vec::<&str>::new(),
             tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
         );
     }
