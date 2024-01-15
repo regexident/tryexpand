@@ -24,6 +24,28 @@ pub(crate) enum TestStatus {
     Failure,
 }
 
+impl std::ops::BitAnd for TestStatus {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (TestStatus::Success, TestStatus::Success) => TestStatus::Success,
+            _ => TestStatus::Failure,
+        }
+    }
+}
+
+impl std::ops::BitOr for TestStatus {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (TestStatus::Success, _) | (_, TestStatus::Success) => TestStatus::Success,
+            _ => TestStatus::Failure,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum TestOutcome {
     SnapshotMatch {
@@ -53,8 +75,10 @@ pub(crate) enum TestOutcome {
     },
     UnexpectedSuccess {
         stdout: String,
+        stderr: Option<String>,
     },
     UnexpectedFailure {
+        stdout: Option<String>,
         stderr: String,
     },
 }
@@ -100,55 +124,66 @@ impl Test {
         project: &Project,
         options: &Options,
         observe: &mut dyn FnMut(TestOutcome),
-    ) -> Result<()> {
-        self.expand(plan, project, options, observe).map(|_| ())
+    ) -> Result<TestStatus> {
+        let TestPlan {
+            action,
+            behavior,
+            expectation,
+        } = plan;
+
+        match action {
+            TestAction::Expand => {
+                let output = cargo::expand(project, self, options)?;
+
+                if output.evaluation != *expectation {
+                    return self.report_unexpected(&output, observe);
+                }
+
+                self.evaluate_expand(output, *behavior, observe)
+            }
+            TestAction::ExpandAndCheck => {
+                let expand_output = cargo::expand(project, self, options)?;
+
+                // It only makes sense to run `cargo check` if `cargo expand` was successful:
+                let combined_output = if expand_output.evaluation == TestStatus::Success {
+                    let check_output = cargo::check(project, self, options)?;
+                    let combined_evaluation = expand_output.evaluation & check_output.evaluation;
+
+                    CargoOutput {
+                        stdout: expand_output.stdout.clone(),
+                        stderr: check_output.stderr.clone(),
+                        evaluation: combined_evaluation,
+                    }
+                } else {
+                    expand_output
+                };
+
+                if combined_output.evaluation == *expectation {
+                    return self.report_unexpected(&combined_output, observe);
+                }
+
+                self.evaluate_expand(combined_output, *behavior, observe)
+            }
+        }
     }
 
-    fn expand(
+    fn evaluate_expand(
         &mut self,
-        plan: &TestPlan,
-        project: &Project,
-        options: &Options,
+        output: CargoOutput,
+        behavior: TestBehavior,
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<TestStatus> {
-        let CargoOutput {
-            stdout,
-            stderr,
-            evaluation,
-        } = cargo::expand(project, self, options)?;
+        let stdout_snapshot_path = self.expand_out_rs_snapshot_path();
+        let stderr_snapshot_path = self.expand_err_txt_snapshot_path();
 
-        // First we check for unexpected successes/failures and bail out right away:
-        match (evaluation, plan.expectation) {
-            (TestStatus::Success, TestStatus::Failure) => {
-                let Some(stdout) = stdout.clone() else {
-                    return Err(crate::error::Error::UnexpectedEmptyStdOut);
-                };
-                observe(TestOutcome::UnexpectedSuccess { stdout });
-                return Ok(TestStatus::Failure);
-            }
-            (TestStatus::Failure, TestStatus::Success) => {
-                let Some(stderr) = stderr.clone() else {
-                    return Err(crate::error::Error::UnexpectedEmptyStdErr);
-                };
-                observe(TestOutcome::UnexpectedFailure {
-                    stderr: stderr.clone(),
-                });
-                return Ok(TestStatus::Failure);
-            }
-            (_, _) => {}
-        }
-
-        let stdout_snapshot_path = self.stdout_snapshot_path();
-        let stderr_snapshot_path = self.stderr_snapshot_path();
-
-        let snapshots = match evaluation {
+        let snapshots = match output.evaluation {
             TestStatus::Success => [
-                (&stdout_snapshot_path, stdout),
+                (&stdout_snapshot_path, output.stdout),
                 (&stderr_snapshot_path, None),
             ],
             TestStatus::Failure => [
-                (&stdout_snapshot_path, stdout),
-                (&stderr_snapshot_path, stderr),
+                (&stdout_snapshot_path, output.stdout),
+                (&stderr_snapshot_path, output.stderr),
             ],
         };
 
@@ -159,7 +194,7 @@ impl Test {
                 None
             };
 
-            match plan.behavior {
+            match behavior {
                 // We either create snapshots if the user requested so:
                 TestBehavior::OverwriteFiles => {
                     self.evaluate_snapshot_overwriting_files(
@@ -181,7 +216,65 @@ impl Test {
             }
         }
 
-        Ok(evaluation)
+        Ok(output.evaluation)
+    }
+
+    // fn report_unexpected_expand(
+    //     &mut self,
+    //     output: &CargoOutput,
+    //     observe: &mut dyn FnMut(TestOutcome),
+    // ) -> Result<TestStatus> {
+    //     match output.evaluation {
+    //         TestStatus::Success => {
+    //             let Some(stdout) = output.stdout.clone() else {
+    //                 return Err(crate::error::Error::UnexpectedEmptyStdOut);
+    //             };
+    //             observe(TestOutcome::UnexpectedSuccess {
+    //                 stdout,
+    //                 stderr: None,
+    //             });
+    //             Ok(TestStatus::Failure)
+    //         }
+    //         TestStatus::Failure => {
+    //             let Some(stderr) = output.stderr.clone() else {
+    //                 return Err(crate::error::Error::UnexpectedEmptyStdErr);
+    //             };
+    //             observe(TestOutcome::UnexpectedFailure {
+    //                 stdout: None,
+    //                 stderr: stderr.clone(),
+    //             });
+    //             Ok(TestStatus::Failure)
+    //         }
+    //     }
+    // }
+
+    fn report_unexpected(
+        &mut self,
+        output: &CargoOutput,
+        observe: &mut dyn FnMut(TestOutcome),
+    ) -> Result<TestStatus> {
+        match output.evaluation {
+            TestStatus::Success => {
+                let Some(stdout) = output.stdout.clone() else {
+                    return Err(crate::error::Error::UnexpectedEmptyStdOut);
+                };
+                observe(TestOutcome::UnexpectedSuccess {
+                    stdout,
+                    stderr: output.stderr.clone(),
+                });
+                Ok(TestStatus::Failure)
+            }
+            TestStatus::Failure => {
+                let Some(stderr) = output.stderr.clone() else {
+                    return Err(crate::error::Error::UnexpectedEmptyStdErr);
+                };
+                observe(TestOutcome::UnexpectedFailure {
+                    stdout: output.stdout.clone(),
+                    stderr: stderr.clone(),
+                });
+                Ok(TestStatus::Failure)
+            }
+        }
     }
 
     fn evaluate_snapshot_overwriting_files(
@@ -262,11 +355,11 @@ impl Test {
         }
     }
 
-    fn stdout_snapshot_path(&self) -> PathBuf {
+    fn expand_out_rs_snapshot_path(&self) -> PathBuf {
         self.path.with_extension(crate::EXPAND_OUT_RS_FILE_SUFFIX)
     }
 
-    fn stderr_snapshot_path(&self) -> PathBuf {
+    fn expand_err_txt_snapshot_path(&self) -> PathBuf {
         self.path.with_extension(crate::EXPAND_ERR_TXT_FILE_SUFFIX)
     }
 

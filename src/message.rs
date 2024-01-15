@@ -35,11 +35,11 @@ pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
         TestOutcome::SnapshotUnexpected { path, content } => {
             snapshot_unexpected(source_path, path, content);
         }
-        TestOutcome::UnexpectedSuccess { stdout } => {
-            unexpected_success(source_path, stdout);
+        TestOutcome::UnexpectedSuccess { stdout, stderr } => {
+            unexpected_success(source_path, stdout, stderr.as_deref());
         }
-        TestOutcome::UnexpectedFailure { stderr } => {
-            unexpected_failure(source_path, stderr);
+        TestOutcome::UnexpectedFailure { stdout, stderr } => {
+            unexpected_failure(source_path, stdout.as_deref(), stderr);
         }
     }
 }
@@ -144,24 +144,44 @@ pub(crate) fn snapshot_unexpected(path: &Path, snapshot_path: &Path, output: &st
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_success(path: &Path, output: &str) {
+pub(crate) fn unexpected_success(path: &Path, stdout: &str, stderr: Option<&str>) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
-    eprintln!("{}", Paint::red("Unexpected success:"));
+    eprintln!("{}", Paint::red("Unexpected success!"));
     eprintln!();
-    print_trimmed_lines(output, Paint::red);
+
+    eprintln!("STDOUT:");
+    eprintln!();
+    print_trimmed_lines(stdout, Paint::blue);
+
+    if let Some(stderr) = stderr {
+        eprintln!();
+        eprintln!("STDERR:");
+        eprintln!();
+        print_trimmed_lines(stderr, Paint::red);
+    }
 
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_failure(path: &Path, output: &str) {
+pub(crate) fn unexpected_failure(path: &Path, stdout: Option<&str>, stderr: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
-    eprintln!("{}", Paint::red("Unexpected failure:"));
+    eprintln!("{}", Paint::red("Unexpected failure!"));
     eprintln!();
-    print_trimmed_lines(output, Paint::red);
+
+    if let Some(stdout) = stdout {
+        eprintln!("STDOUT:");
+        eprintln!();
+        print_trimmed_lines(stdout, Paint::blue);
+        eprintln!();
+    }
+
+    eprintln!("STDERR:");
+    eprintln!();
+    print_trimmed_lines(stderr, Paint::red);
 
     eprintln!("--------------------------");
 }

@@ -24,13 +24,17 @@ pub(crate) const EXPAND_ERR_TXT_FILE_SUFFIX: &str = "expand.err.txt";
 
 pub use self::options::Options;
 
-use crate::{test::TestPlan, test_suite::test_behavior_from_env};
+use crate::{
+    test::{TestAction, TestPlan},
+    test_suite::test_behavior_from_env,
+};
 
 use self::{project::Project, test::TestStatus};
 
 macro_rules! run_test_suite {
     (
         patterns: $patterns:expr,
+        action: $action:expr,
         options: $options:expr,
         expectation: $expectation:expr
     ) => {{
@@ -44,6 +48,7 @@ macro_rules! run_test_suite {
                 $patterns,
                 $options,
                 TestPlan {
+                    action: $action,
                     behavior: test_behavior_from_env()?,
                     expectation: $expectation,
                 },
@@ -75,19 +80,31 @@ where
 {
     run_test_suite!(
         patterns: paths,
+        action: TestAction::Expand,
         options: Options::default(),
         expectation: TestStatus::Success
     )
 }
 
+/// Attempts to expand macros in files that match glob pattern, as well as check their expansion.
+///
+/// # Refresh behavior
+///
+/// If no matching `.expand.out.rs` files present, they will be created and result of expansion
+/// will be written into them.
+///
+/// # Panics
+///
+/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand_checked<I, P>(paths: I)
+pub fn expand_checking<I, P>(paths: I)
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
     run_test_suite!(
         patterns: paths,
+        action: TestAction::ExpandAndCheck,
         options: Options::default(),
         expectation: TestStatus::Success
     )
@@ -111,6 +128,7 @@ where
 {
     run_test_suite!(
         patterns: paths,
+        action: TestAction::Expand,
         options: Options::default(),
         expectation: TestStatus::Failure
     )
@@ -127,6 +145,24 @@ where
 {
     run_test_suite!(
         patterns: paths,
+        action: TestAction::Expand,
+        options: options,
+        expectation: TestStatus::Success
+    )
+}
+
+/// Same as [`expand_checking`] but allows to pass additional arguments to `cargo-expand`.
+///
+/// [`expand_checking`]: expand/fn.expand_checking.html
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+pub fn expand_opts_checking<I, P>(paths: I, options: Options)
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    run_test_suite!(
+        patterns: paths,
+        action: TestAction::ExpandAndCheck,
         options: options,
         expectation: TestStatus::Success
     )
@@ -143,6 +179,7 @@ where
 {
     run_test_suite!(
         patterns: paths,
+        action: TestAction::Expand,
         options: options,
         expectation: TestStatus::Failure
     )

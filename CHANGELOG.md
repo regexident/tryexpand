@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
 
 ### Changed
 
