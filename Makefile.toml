@@ -36,6 +36,33 @@ args = [
     "--test-threads=1",
 ]
 
+[tasks.test-virtual-workspace]
+dependencies = [
+    "test-virtual-workspace-included",
+    "test-virtual-workspace-excluded",
+]
+
+[tasks.test-virtual-workspace-included]
+command = "cargo"
+args = [
+    "test",
+    "--manifest-path",
+    "tests/virtual-workspace-tests/Cargo.toml",
+    "--workspace",
+    "--",
+    "--test-threads=1",
+]
+
+[tasks.test-virtual-workspace-excluded]
+command = "cargo"
+args = [
+    "test",
+    "--manifest-path",
+    "tests/virtual-workspace-tests/excluded-tests/Cargo.toml",
+    "--",
+    "--test-threads=1",
+]
+
 [tasks.test-macros]
 command = "cargo"
 args = [
@@ -61,6 +88,7 @@ dependencies = [
     "test",
     "test-other",
     "test-workspace",
+    "test-virtual-workspace",
     "test-macros",
     "test-proc-macros",
 ]

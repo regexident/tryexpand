@@ -5,6 +5,7 @@ exclude = [
     "./tests/macro-tests",
     "./tests/other-tests",
     "./tests/workspace-tests",
+    "./tests/virtual-workspace-tests",
 ]
 
 [package]
