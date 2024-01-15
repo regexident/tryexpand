@@ -20,13 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `cargo_metadata = "0.18.1"` crate dependency.
-- Added support for (virtual/non-virtual) workspaces.
+- n/a
 
 ### Changed
 
-- Changed file extension from `.expanded.rs` to `.expand.out.rs` (to match the `expand` command, so we can add others in the future).
-- Cargo metadata now gets read via `cargo_metadata` which is more robust than `cargo_toml`.
+- n/a
 
 ### Deprecated
 
@@ -47,6 +45,22 @@ Please make sure to add your changes to the appropriate categories:
 ### Security
 
 - n/a
+
+### Other
+
+- n/a
+
+## [0.4.0] - 2024-01-15
+
+### Added
+
+- Added `cargo_metadata = "0.18.1"` crate dependency.
+- Added support for (virtual/non-virtual) workspaces.
+
+### Changed
+
+- Changed file extension from `.expanded.rs` to `.expand.out.rs` (to match the `expand` command, so we can add others in the future).
+- Cargo metadata now gets read via `cargo_metadata` which is more robust than `cargo_toml`.
 
 ### Other
 
