@@ -136,7 +136,8 @@ pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
         false
     }
 
-    println!("\n");
+    let _ = writeln!(std::io::stdout());
+    let _ = writeln!(std::io::stdout());
 
     let stdout = cargo(project)
         .arg("expand")
