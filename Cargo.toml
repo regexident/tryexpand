@@ -7,6 +7,7 @@ exclude = [
     "./tests/workspace-tests",
     "./tests/virtual-workspace-tests",
 ]
+resolver = "2"
 
 [package]
 name = "tryexpand"

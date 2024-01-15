@@ -1,6 +1,7 @@
 [workspace]
 members = ["./member-tests"]
 exclude = ["./excluded-tests"]
+resolver = "2"
 
 [package]
 name = "root-tests"
