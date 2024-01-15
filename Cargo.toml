@@ -4,6 +4,7 @@ exclude = [
     "./tests/proc-macro-tests",
     "./tests/macro-tests",
     "./tests/other-tests",
+    "./tests/workspace-tests",
 ]
 
 [package]
