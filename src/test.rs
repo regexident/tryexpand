@@ -210,7 +210,7 @@ impl Test {
     }
 
     fn stderr_snapshot_path(&self) -> PathBuf {
-        self.path.with_extension(crate::ERROR_LOG_FILE_SUFFIX)
+        self.path.with_extension(crate::EXPAND_ERR_TXT_FILE_SUFFIX)
     }
 
     fn compare(actual: &str, expected: &str) -> Comparison {

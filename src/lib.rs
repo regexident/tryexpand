@@ -18,7 +18,7 @@ pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFACTS";
 
 pub(crate) const EXPAND_OUT_RS_FILE_SUFFIX: &str = "expand.out.rs";
-pub(crate) const ERROR_LOG_FILE_SUFFIX: &str = "error.txt";
+pub(crate) const EXPAND_ERR_TXT_FILE_SUFFIX: &str = "expand.err.txt";
 
 use self::{project::Project, run::try_run_tests, test::TestExpectation};
 
