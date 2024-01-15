@@ -206,7 +206,7 @@ impl Test {
     }
 
     fn stdout_snapshot_path(&self) -> PathBuf {
-        self.path.with_extension(crate::EXPANDED_RS_FILE_SUFFIX)
+        self.path.with_extension(crate::EXPAND_OUT_RS_FILE_SUFFIX)
     }
 
     fn stderr_snapshot_path(&self) -> PathBuf {

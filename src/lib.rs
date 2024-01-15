@@ -17,7 +17,7 @@ pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 
 pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFACTS";
 
-pub(crate) const EXPANDED_RS_FILE_SUFFIX: &str = "expanded.rs";
+pub(crate) const EXPAND_OUT_RS_FILE_SUFFIX: &str = "expand.out.rs";
 pub(crate) const ERROR_LOG_FILE_SUFFIX: &str = "error.txt";
 
 use self::{project::Project, run::try_run_tests, test::TestExpectation};
@@ -26,12 +26,12 @@ use self::{project::Project, run::try_run_tests, test::TestExpectation};
 ///
 /// # Refresh behavior
 ///
-/// If no matching `.expanded.rs` files present, they will be created and result of expansion
+/// If no matching `.expand.out.rs` files present, they will be created and result of expansion
 /// will be written into them.
 ///
 /// # Panics
 ///
-/// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
+/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand<I, P>(paths: I)
 where
@@ -45,12 +45,12 @@ where
 ///
 /// # Refresh behavior
 ///
-/// If no matching `.expanded.rs` files present, they will be created and result (error) of expansion
+/// If no matching `.expand.out.rs` files present, they will be created and result (error) of expansion
 /// will be written into them.
 ///
 /// # Panics
 ///
-/// Will panic if matching `.expanded.rs` file is present, but has different expanded code in it.
+/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_fail<I, P>(paths: I)
 where
