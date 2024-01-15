@@ -1,0 +1,21 @@
+error[E0277]: cannot add `&str` to `{integer}`
+ --> /tests/expand_checking/fail/invalid.rs:5:5
+  |
+5 |     expand_to_invalid_code!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `{integer} + &str`
+  |
+  = help: the trait `Add<&str>` is not implemented for `{integer}`
+  = help: the following other types implement trait `Add<Rhs>`:
+            <isize as Add>
+            <isize as Add<&isize>>
+            <i8 as Add>
+            <i8 as Add<&i8>>
+            <i16 as Add>
+            <i16 as Add<&i16>>
+            <i32 as Add>
+            <i32 as Add<&i32>>
+          and 48 others
+  = note: this error originates in the macro `expand_to_invalid_code` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `<CRATE>` (bin "<BIN>") due to previous error
