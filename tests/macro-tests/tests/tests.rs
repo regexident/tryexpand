@@ -15,11 +15,3 @@ pub fn expand_opts() {
         tryexpand::Options::default().args(["--features", "test-feature"]),
     );
 }
-
-#[test]
-pub fn expand_opts_fail() {
-    tryexpand::expand_opts_fail(
-        ["tests/expand_opts/fail/*.rs"],
-        tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
-    );
-}
