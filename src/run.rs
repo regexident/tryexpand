@@ -68,9 +68,21 @@ where
     let paths: Vec<PathBuf> = Vec::from_iter(unique_paths);
     let len = paths.len();
 
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .exec()
+        .map_err(Error::CargoMetadata)?;
+
     let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::CargoPkgName)?;
 
-    let project = Project::new(&crate_name, test_suite_id, paths).unwrap_or_else(|err| {
+    let package = metadata
+        .packages
+        .iter()
+        .find(|package| package.name == crate_name)
+        .ok_or_else(|| Error::CargoPackageNotFound)?;
+
+    let target_dir = metadata.target_directory.as_std_path().to_owned();
+
+    let project = Project::new(package, test_suite_id, &target_dir, paths).unwrap_or_else(|err| {
         panic!("Could not create test project: {:#?}", err);
     });
 
