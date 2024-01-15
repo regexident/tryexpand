@@ -1,3 +1,0 @@
-mod {
-    invalid syntax;
-}
