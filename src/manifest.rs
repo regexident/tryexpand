@@ -9,13 +9,18 @@ use cargo_toml::{
 use crate::{
     error::{Error, Result},
     project::Project,
+    test::Test,
 };
 
-pub(crate) fn cargo_manifest(
+pub(crate) fn cargo_manifest<'a, I>(
     source_package: &SourcePackage,
     test_crate_name: &str,
     project: &Project,
-) -> Result<Manifest> {
+    tests: I,
+) -> Result<Manifest>
+where
+    I: IntoIterator<Item = &'a Test>,
+{
     #![allow(clippy::field_reassign_with_default)]
 
     let mut package: Package = Package::new(test_crate_name.to_owned(), "0.0.0".to_owned());
@@ -65,9 +70,8 @@ pub(crate) fn cargo_manifest(
     lib_product.name = Some(test_crate_name.replace('-', "_").to_owned());
     lib_product.path = Some("lib.rs".to_owned());
 
-    let bin: Vec<_> = project
-        .tests
-        .iter()
+    let bin: Vec<_> = tests
+        .into_iter()
         .map(|test| {
             let mut bin_product = Product::default();
             let test_path = std::env::current_dir().unwrap().join(&test.path);
