@@ -1,9 +1,9 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     cargo::{self, Expansion},
     error::Result,
-    Options, Project,
+    utils, Options, Project,
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -135,7 +135,7 @@ impl Test {
 
         for (snapshot_path, current) in snapshots {
             let existing = if snapshot_path.exists() {
-                Some(String::from_utf8_lossy(&fs::read(snapshot_path)?).into_owned())
+                Some(String::from_utf8_lossy(&utils::read(snapshot_path)?).into_owned())
             } else {
                 None
             };
@@ -149,7 +149,7 @@ impl Test {
 
                     if let Some(expected) = existing {
                         if actual != expected {
-                            fs::write(snapshot_path, &actual)?;
+                            utils::write(snapshot_path, &actual)?;
 
                             observe(TestOutcome::SnapshotUpdated {
                                 before: expected.clone(),
@@ -158,7 +158,7 @@ impl Test {
                             });
                         }
                     } else {
-                        fs::write(snapshot_path, &actual)?;
+                        utils::write(snapshot_path, &actual)?;
 
                         observe(TestOutcome::SnapshotCreated {
                             after: actual.clone(),

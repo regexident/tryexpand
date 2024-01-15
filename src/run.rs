@@ -70,7 +70,10 @@ where
 
     let metadata = cargo_metadata::MetadataCommand::new()
         .exec()
-        .map_err(Error::CargoMetadata)?;
+        .map_err(|source| Error::CargoMetadata {
+            directory: std::env::current_dir().unwrap(),
+            source,
+        })?;
 
     let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::CargoPkgName)?;
 
