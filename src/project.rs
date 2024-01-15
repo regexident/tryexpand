@@ -1,9 +1,11 @@
 use std::{
     collections::hash_map::DefaultHasher,
-    env, fs,
+    fs,
     hash::{Hash, Hasher},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
+
+use cargo_metadata::Package;
 
 use crate::{
     cargo::{self},
@@ -16,36 +18,27 @@ use crate::{
 pub(crate) struct Project {
     pub dir: PathBuf,
     pub manifest_dir: PathBuf,
-    /// Used for the inner runs of cargo()
     pub target_dir: PathBuf,
     pub name: String,
     pub tests: Vec<Test>,
 }
 
 impl Project {
-    pub(crate) fn new<I>(crate_name: &str, test_suite_id: &str, paths: I) -> Result<Project>
+    pub(crate) fn new<I>(
+        package: &Package,
+        test_suite_id: &str,
+        target_dir: &Path,
+        paths: I,
+    ) -> Result<Project>
     where
         I: IntoIterator<Item = PathBuf>,
     {
-        let metadata = cargo_metadata::MetadataCommand::new()
-            .exec()
-            .map_err(Error::CargoMetadata)?;
-
-        let source_package = metadata
-            .packages
-            .iter()
-            .find(|package| package.name == crate_name)
-            .ok_or_else(|| Error::CargoPackageNotFound)?;
-
-        let target_dir = env::var_os("CARGO_TARGET_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| metadata.target_directory.as_std_path().to_owned());
-        let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")
-            .map(PathBuf::from)
-            .ok_or(Error::CargoManifestDir)?;
+        let manifest_path = package.manifest_path.as_std_path().to_owned();
+        let manifest_dir = manifest_path.parent().unwrap().to_owned();
 
         let tests_dir = target_dir.join("tests");
 
+        let crate_name = &package.name;
         let test_crate_name = format!("{crate_name}_{test_suite_id}");
         let dir = tests_dir.join(&test_crate_name);
 
@@ -79,7 +72,7 @@ impl Project {
             tests,
         };
 
-        let manifest = manifest::cargo_manifest(source_package, &test_crate_name, &project)?;
+        let manifest = manifest::cargo_manifest(package, &test_crate_name, &project)?;
         let manifest_toml = basic_toml::to_string(&manifest)?;
 
         let config = cargo::make_config();

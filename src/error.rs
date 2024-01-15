@@ -12,8 +12,6 @@ pub(crate) enum Error {
     CargoMetadata(#[from] cargo_metadata::Error),
     #[error("could not find package")]
     CargoPackageNotFound,
-    #[error("could not find 'CARGO_MANIFEST_DIR' env var")]
-    CargoManifestDir,
     #[error("unsupported rust edition: {edition:?}")]
     UnsupportedRustEdition { edition: String },
     #[error(transparent)]
