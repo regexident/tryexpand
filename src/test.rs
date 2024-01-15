@@ -7,6 +7,12 @@ use crate::{
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub(crate) enum TestAction {
+    Expand,
+    ExpandAndCheck,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum TestBehavior {
     OverwriteFiles,
     ExpectFiles,
@@ -76,6 +82,7 @@ enum Comparison {
 
 #[derive(Debug)]
 pub(crate) struct TestPlan {
+    pub action: TestAction,
     pub behavior: TestBehavior,
     pub expectation: TestStatus,
 }

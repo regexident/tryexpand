@@ -85,6 +85,20 @@ pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Resul
     run(cargo, project, test)
 }
 
+pub(crate) fn check(project: &Project, test: &Test, options: &Options) -> Result<CargoOutput> {
+    let mut cargo = cargo(project);
+
+    cargo.arg("check").arg("--bin").arg(&test.bin);
+
+    cargo.args(&options.args);
+
+    for (key, value) in &options.env {
+        cargo.env(key, value);
+    }
+
+    run(cargo, project, test)
+}
+
 fn run(mut command: Command, project: &Project, test: &Test) -> Result<CargoOutput> {
     let output = command
         .output()
