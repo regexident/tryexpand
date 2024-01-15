@@ -61,7 +61,7 @@ where
         .filter(|path| {
             !path
                 .to_string_lossy()
-                .ends_with(crate::EXPANDED_RS_FILE_SUFFIX)
+                .ends_with(crate::EXPAND_OUT_RS_FILE_SUFFIX)
         })
         .collect();
 

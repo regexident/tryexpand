@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Changed file extension from `.expanded.rs` to `.expand.out.rs` (to match the `expand` command, so we can add others in the future).
 
 ### Deprecated
 
