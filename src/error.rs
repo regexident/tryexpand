@@ -7,9 +7,15 @@ pub(crate) enum Error {
     #[error("cargo reported an error")]
     CargoFail,
     #[error(transparent)]
-    CargoMetadata(#[from] cargo_toml::Error),
+    CargoToml(#[from] cargo_toml::Error),
+    #[error(transparent)]
+    CargoMetadata(#[from] cargo_metadata::Error),
+    #[error("could not find package")]
+    CargoPackageNotFound,
     #[error("could not find 'CARGO_MANIFEST_DIR' env var")]
     CargoManifestDir,
+    #[error("unsupported rust edition: {edition:?}")]
+    UnsupportedRustEdition { edition: String },
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]

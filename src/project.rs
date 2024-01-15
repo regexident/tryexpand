@@ -5,8 +5,6 @@ use std::{
     path::PathBuf,
 };
 
-use cargo_toml::Manifest;
-
 use crate::{
     cargo::{self},
     error::{Error, Result},
@@ -29,20 +27,19 @@ impl Project {
     where
         I: IntoIterator<Item = PathBuf>,
     {
-        let manifest_path = "Cargo.toml";
+        let metadata = cargo_metadata::MetadataCommand::new()
+            .exec()
+            .map_err(Error::CargoMetadata)?;
 
-        let current_dir = std::env::current_dir().expect("current working directory");
-
-        let root_manifest = Manifest::from_path(manifest_path).map_err(Error::CargoMetadata)?;
-        let workspace_manifest = manifest::workspace_manifest(&root_manifest);
-        // eprintln!("workspace_manifest: {workspace_manifest:#?}");
-        let package_manifest =
-            manifest::package_manifest(&root_manifest, crate_name).expect("package");
-        // eprintln!("package_manifest: {package_manifest:#?}");
+        let source_package = metadata
+            .packages
+            .iter()
+            .find(|package| package.name == crate_name)
+            .ok_or_else(|| Error::CargoPackageNotFound)?;
 
         let target_dir = env::var_os("CARGO_TARGET_DIR")
             .map(PathBuf::from)
-            .unwrap_or_else(|| current_dir.join("target"));
+            .unwrap_or_else(|| metadata.target_directory.as_std_path().to_owned());
         let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")
             .map(PathBuf::from)
             .ok_or(Error::CargoManifestDir)?;
@@ -82,12 +79,7 @@ impl Project {
             tests,
         };
 
-        let manifest = manifest::cargo_manifest(
-            workspace_manifest.as_ref(),
-            &package_manifest,
-            &test_crate_name,
-            &project,
-        )?;
+        let manifest = manifest::cargo_manifest(source_package, &test_crate_name, &project)?;
         let manifest_toml = basic_toml::to_string(&manifest)?;
 
         let config = cargo::make_config();
