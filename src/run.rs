@@ -45,7 +45,7 @@ pub(crate) use run_tests;
 
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub(crate) fn try_run_tests<I, P>(
-    paths: I,
+    patterns: I,
     args: Option<Options>,
     test_suite_id: &str,
     expectation: TestSuiteExpectation,
@@ -54,7 +54,13 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    let unique_paths: HashSet<PathBuf> = paths
+    let patterns = Vec::from_iter(patterns);
+
+    if patterns.is_empty() {
+        panic!("no file patterns provided");
+    }
+
+    let unique_paths: HashSet<PathBuf> = patterns
         .into_iter()
         .filter_map(|path| expand_globs(path).ok())
         .flatten()
