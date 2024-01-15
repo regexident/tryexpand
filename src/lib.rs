@@ -26,7 +26,7 @@ pub use self::options::Options;
 
 use crate::{test::TestPlan, test_suite::test_behavior_from_env};
 
-use self::{project::Project, test::TestExpectation};
+use self::{project::Project, test::TestStatus};
 
 macro_rules! run_test_suite {
     (
@@ -76,7 +76,7 @@ where
     run_test_suite!(
         patterns: paths,
         options: Options::default(),
-        expectation: TestExpectation::Success
+        expectation: TestStatus::Success
     )
 }
 
@@ -89,7 +89,7 @@ where
     run_test_suite!(
         patterns: paths,
         options: Options::default(),
-        expectation: TestExpectation::Success
+        expectation: TestStatus::Success
     )
 }
 
@@ -112,7 +112,7 @@ where
     run_test_suite!(
         patterns: paths,
         options: Options::default(),
-        expectation: TestExpectation::Failure
+        expectation: TestStatus::Failure
     )
 }
 
@@ -128,7 +128,7 @@ where
     run_test_suite!(
         patterns: paths,
         options: options,
-        expectation: TestExpectation::Success
+        expectation: TestStatus::Success
     )
 }
 
@@ -144,6 +144,6 @@ where
     run_test_suite!(
         patterns: paths,
         options: options,
-        expectation: TestExpectation::Failure
+        expectation: TestStatus::Failure
     )
 }
