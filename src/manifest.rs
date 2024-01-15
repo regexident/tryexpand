@@ -1,25 +1,40 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
 
+use cargo_metadata::{Edition as SourceEdition, Package as SourcePackage};
 use cargo_toml::{
-    Badges, Dependency, DependencyDetail, DepsSet, Manifest, Package, PatchSet, Product, Profiles,
-    TargetDepsSet, Workspace,
+    Badges, Dependency, DependencyDetail, DepsSet, Edition, Inheritable, Manifest, Package,
+    PatchSet, Product, Profiles, TargetDepsSet, Workspace,
 };
 
-use crate::{error::Result, project::Project};
+use crate::{
+    error::{Error, Result},
+    project::Project,
+};
 
 pub(crate) fn cargo_manifest(
-    _workspace_manifest: Option<&Manifest>,
-    package_manifest: &Manifest,
+    source_package: &SourcePackage,
     test_crate_name: &str,
     project: &Project,
 ) -> Result<Manifest> {
     #![allow(clippy::field_reassign_with_default)]
 
-    let source_package = package_manifest.package();
-
     let mut package: Package = Package::new(test_crate_name.to_owned(), "0.0.0".to_owned());
-    package.edition = source_package.edition;
-    package.rust_version = source_package.rust_version.clone();
+
+    package.edition = match source_package.edition {
+        SourceEdition::E2015 => Inheritable::Set(Edition::E2015),
+        SourceEdition::E2018 => Inheritable::Set(Edition::E2018),
+        SourceEdition::E2021 => Inheritable::Set(Edition::E2021),
+        edition => {
+            return Err(Error::UnsupportedRustEdition {
+                edition: edition.to_string(),
+            })
+        }
+    };
+
+    package.rust_version = source_package
+        .rust_version
+        .as_ref()
+        .map(|version| Inheritable::Set(version.to_string()));
 
     let mut dependencies = BTreeMap::default();
 
@@ -28,14 +43,14 @@ pub(crate) fn cargo_manifest(
     dependency.path = Some(dependency_path);
     dependency.default_features = true;
 
-    let dependency_name = source_package.name();
+    let dependency_name = source_package.name.clone();
 
     dependencies.insert(
         dependency_name.to_owned(),
         Dependency::Detailed(Box::new(dependency)),
     );
 
-    let features = package_manifest
+    let features = source_package
         .features
         .keys()
         .map(|feature| {
@@ -91,45 +106,6 @@ pub(crate) fn cargo_manifest(
         test: vec![],
         example: vec![],
     };
-    // eprintln!("{:#?}", manifest);
 
     Ok(manifest)
-}
-
-pub(crate) fn workspace_manifest(root_manifest: &Manifest) -> Option<Manifest> {
-    if root_manifest.workspace.is_some() {
-        Some(root_manifest.clone())
-    } else {
-        None
-    }
-}
-
-pub(crate) fn package_manifest(root_manifest: &Manifest, package_name: &str) -> Option<Manifest> {
-    if let Some(package) = &root_manifest.package {
-        if package.name() == package_name {
-            return Some(root_manifest.clone());
-        } else {
-            return None;
-        }
-    }
-
-    let Some(workspace) = &root_manifest.workspace else {
-        return None;
-    };
-
-    workspace
-        .members
-        .iter()
-        .map(PathBuf::from)
-        .find_map(|member_path| {
-            let file_name = member_path.file_name().map(|n| n.to_string_lossy());
-            let manifest_path = if file_name.as_deref() == Some("Cargo.toml") {
-                member_path
-            } else {
-                member_path.join("Cargo.toml")
-            };
-            Manifest::from_path(manifest_path)
-                .ok()
-                .filter(|manifest| manifest.package().name() == package_name)
-        })
 }
