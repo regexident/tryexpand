@@ -1,7 +1,5 @@
 use std::{
-    collections::hash_map::DefaultHasher,
     fs,
-    hash::{Hash, Hasher},
     path::{Path, PathBuf},
 };
 
@@ -17,22 +15,21 @@ use crate::{
 
 #[derive(Debug)]
 pub(crate) struct Project {
+    pub name: String,
     pub dir: PathBuf,
     pub manifest_dir: PathBuf,
     pub target_dir: PathBuf,
-    pub name: String,
-    pub tests: Vec<Test>,
 }
 
 impl Project {
-    pub(crate) fn new<I>(
+    pub(crate) fn new<'a, I>(
         package: &Package,
         test_suite_id: &str,
         target_dir: &Path,
-        paths: I,
+        tests: I,
     ) -> Result<Project>
     where
-        I: IntoIterator<Item = PathBuf>,
+        I: IntoIterator<Item = &'a Test>,
     {
         let manifest_path = package.manifest_path.as_std_path().to_owned();
         let manifest_dir = manifest_path.parent().unwrap().to_owned();
@@ -47,33 +44,14 @@ impl Project {
 
         let name = test_crate_name.clone();
 
-        let mut tests: Vec<_> = paths
-            .into_iter()
-            .map(|path| {
-                let bin = {
-                    let mut hasher = DefaultHasher::default();
-                    path.hash(&mut hasher);
-                    // Taking the lower-case of a base62 hash leads to collisions
-                    // but the number of tests we're dealing with shouldn't
-                    // realistically cause any issues in practice:
-                    let test_id = base62::encode(hasher.finish()).to_lowercase();
-                    format!("{name}_{test_id}")
-                };
-                Test { bin, path }
-            })
-            .collect();
-
-        tests.sort_by_cached_key(|test| test.path.clone());
-
         let project = Project {
             dir,
             manifest_dir,
             target_dir,
             name,
-            tests,
         };
 
-        let manifest = manifest::cargo_manifest(package, &test_crate_name, &project)?;
+        let manifest = manifest::cargo_manifest(package, &test_crate_name, &project, tests)?;
         let manifest_toml =
             basic_toml::to_string(&manifest).map_err(Error::CargoManifestSerializationFailed)?;
 

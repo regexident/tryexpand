@@ -8,8 +8,8 @@ mod manifest;
 mod message;
 mod normalization;
 mod project;
-mod run;
 mod test;
+mod test_suite;
 mod utils;
 
 pub(crate) const TRYEXPAND_ENV_KEY: &str = "TRYEXPAND";
@@ -21,7 +21,38 @@ pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFA
 pub(crate) const EXPAND_OUT_RS_FILE_SUFFIX: &str = "expand.out.rs";
 pub(crate) const EXPAND_ERR_TXT_FILE_SUFFIX: &str = "expand.err.txt";
 
-use self::{project::Project, run::try_run_tests, test::TestExpectation};
+use crate::{test::TestPlan, test_suite::test_behavior_from_env};
+
+use self::{project::Project, test::TestExpectation};
+
+macro_rules! run_test_suite {
+    (
+        patterns: $patterns:expr,
+        options: $options:expr,
+        expectation: $expectation:expr
+    ) => {{
+        // IMPORTANT: This only works as lone as all functions between
+        // the public API and this call are marked with `#[track_caller]`:
+        let location = ::std::panic::Location::caller();
+
+        let fallible_block = || {
+            $crate::test_suite::try_run_tests(
+                location,
+                $patterns,
+                $options,
+                TestPlan {
+                    behavior: test_behavior_from_env()?,
+                    expectation: $expectation,
+                },
+            )
+        };
+
+        match fallible_block() {
+            Ok(()) => {}
+            Err(err) => panic!("{}", err),
+        }
+    }};
+}
 
 /// Attempts to expand macros in files that match glob pattern.
 ///
@@ -39,7 +70,24 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, None, TestExpectation::Success);
+    run_test_suite!(
+        patterns: paths,
+        options: Options::default(),
+        expectation: TestExpectation::Success
+    )
+}
+
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+pub fn expand_checked<I, P>(paths: I)
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    run_test_suite!(
+        patterns: paths,
+        options: Options::default(),
+        expectation: TestExpectation::Success
+    )
 }
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
@@ -58,7 +106,11 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, None, TestExpectation::Failure);
+    run_test_suite!(
+        patterns: paths,
+        options: Options::default(),
+        expectation: TestExpectation::Failure
+    )
 }
 
 /// Same as [`expand`] but allows to pass additional arguments to `cargo-expand`.
@@ -70,7 +122,11 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, Some(options), TestExpectation::Success);
+    run_test_suite!(
+        patterns: paths,
+        options: options,
+        expectation: TestExpectation::Success
+    )
 }
 
 /// Same as [`expand_fail`] but allows to pass additional arguments to `cargo-expand`.
@@ -82,7 +138,11 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    run::run_tests!(paths, Some(options), TestExpectation::Failure);
+    run_test_suite!(
+        patterns: paths,
+        options: options,
+        expectation: TestExpectation::Failure
+    )
 }
 
 #[derive(Clone, Default, Debug)]

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
     cargo::{self, Expansion},
@@ -78,6 +78,12 @@ enum Comparison {
 }
 
 #[derive(Debug)]
+pub(crate) struct TestPlan {
+    pub behavior: TestBehavior,
+    pub expectation: TestExpectation,
+}
+
+#[derive(Debug)]
 pub(crate) struct Test {
     pub bin: String,
     pub path: PathBuf,
@@ -85,27 +91,36 @@ pub(crate) struct Test {
 
 impl Test {
     pub fn run(
-        &self,
+        &mut self,
+        plan: &TestPlan,
         project: &Project,
-        args: &Option<Options>,
-        behavior: TestBehavior,
-        expectation: TestExpectation,
+        options: &Options,
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<()> {
+        self.expand(plan, project, options, observe).map(|_| ())
+    }
+
+    fn expand(
+        &mut self,
+        plan: &TestPlan,
+        project: &Project,
+        options: &Options,
+        observe: &mut dyn FnMut(TestOutcome),
+    ) -> Result<Evaluation> {
         let Expansion {
             stdout,
             stderr,
             evaluation,
-        } = cargo::expand(project, self, args)?;
+        } = cargo::expand(project, self, options)?;
 
         // First we check for unexpected successes/failures and bail out right away:
-        match (evaluation, expectation) {
+        match (evaluation, plan.expectation) {
             (Evaluation::Success, Evaluation::Failure) => {
                 let Some(stdout) = stdout.clone() else {
                     return Err(crate::error::Error::UnexpectedEmptyStdOut);
                 };
                 observe(TestOutcome::UnexpectedSuccess { stdout });
-                return Ok(());
+                return Ok(Evaluation::Failure);
             }
             (Evaluation::Failure, Evaluation::Success) => {
                 let Some(stderr) = stderr.clone() else {
@@ -114,7 +129,7 @@ impl Test {
                 observe(TestOutcome::UnexpectedFailure {
                     stderr: stderr.clone(),
                 });
-                return Ok(());
+                return Ok(Evaluation::Failure);
             }
             (_, _) => {}
         }
@@ -133,76 +148,114 @@ impl Test {
             ],
         };
 
-        for (snapshot_path, current) in snapshots {
-            let existing = if snapshot_path.exists() {
+        for (snapshot_path, actual) in snapshots {
+            let expected = if snapshot_path.exists() {
                 Some(String::from_utf8_lossy(&utils::read(snapshot_path)?).into_owned())
             } else {
                 None
             };
 
-            match behavior {
+            match plan.behavior {
                 // We either create snapshots if the user requested so:
                 TestBehavior::OverwriteFiles => {
-                    let Some(actual) = current else {
-                        continue;
-                    };
-
-                    if let Some(expected) = existing {
-                        if actual != expected {
-                            utils::write(snapshot_path, &actual)?;
-
-                            observe(TestOutcome::SnapshotUpdated {
-                                before: expected.clone(),
-                                after: actual.clone(),
-                                path: snapshot_path.clone(),
-                            });
-                        }
-                    } else {
-                        utils::write(snapshot_path, &actual)?;
-
-                        observe(TestOutcome::SnapshotCreated {
-                            after: actual.clone(),
-                            path: snapshot_path.clone(),
-                        });
-                    }
+                    self.evaluate_snapshot_overwriting_files(
+                        expected,
+                        actual,
+                        snapshot_path,
+                        observe,
+                    )?;
                 }
                 // Or otherwise check for existing snapshots:
-                TestBehavior::ExpectFiles => match (current, existing) {
-                    (None, None) => continue,
-                    (None, Some(expected)) => {
-                        observe(TestOutcome::SnapshotUnexpected {
-                            content: expected,
-                            path: snapshot_path.clone(),
-                        });
-                    }
-                    (Some(actual), None) => {
-                        observe(TestOutcome::SnapshotExpected {
-                            content: actual,
-                            path: snapshot_path.clone(),
-                        });
-                    }
-                    (Some(actual), Some(expected)) => {
-                        let comparison = Self::compare(&actual, &expected);
-                        match comparison {
-                            Comparison::Match => {
-                                observe(TestOutcome::SnapshotMatch {
-                                    path: snapshot_path.clone(),
-                                });
-                            }
-                            Comparison::Mismatch => {
-                                observe(TestOutcome::SnapshotMismatch {
-                                    expected,
-                                    actual: actual.clone(),
-                                    path: snapshot_path.clone(),
-                                });
-                            }
-                        }
-                    }
-                },
+                TestBehavior::ExpectFiles => {
+                    self.evaluate_snapshot_expecting_files(
+                        expected,
+                        actual,
+                        snapshot_path,
+                        observe,
+                    )?;
+                }
             }
         }
 
-        Ok(())
+        Ok(evaluation)
+    }
+
+    fn evaluate_snapshot_overwriting_files(
+        &mut self,
+        expected: Option<String>,
+        actual: Option<String>,
+        snapshot_path: &Path,
+        observe: &mut dyn FnMut(TestOutcome),
+    ) -> Result<Evaluation> {
+        let Some(actual) = actual else {
+            return Ok(Evaluation::Success);
+        };
+
+        if let Some(expected) = expected {
+            if actual != expected {
+                utils::write(snapshot_path, &actual)?;
+
+                observe(TestOutcome::SnapshotUpdated {
+                    before: expected.clone(),
+                    after: actual.clone(),
+                    path: snapshot_path.to_owned(),
+                });
+            }
+        } else {
+            utils::write(snapshot_path, &actual)?;
+
+            observe(TestOutcome::SnapshotCreated {
+                after: actual.clone(),
+                path: snapshot_path.to_owned(),
+            });
+        }
+
+        Ok(Evaluation::Success)
+    }
+
+    fn evaluate_snapshot_expecting_files(
+        &mut self,
+        expected: Option<String>,
+        actual: Option<String>,
+        snapshot_path: &Path,
+        observe: &mut dyn FnMut(TestOutcome),
+    ) -> Result<Evaluation> {
+        match (actual, expected) {
+            (None, None) => Ok(Evaluation::Success),
+            (None, Some(expected)) => {
+                observe(TestOutcome::SnapshotUnexpected {
+                    content: expected,
+                    path: snapshot_path.to_owned(),
+                });
+                Ok(Evaluation::Failure)
+            }
+            (Some(actual), None) => {
+                observe(TestOutcome::SnapshotExpected {
+                    content: actual,
+                    path: snapshot_path.to_owned(),
+                });
+                Ok(Evaluation::Failure)
+            }
+            (Some(actual), Some(expected)) => {
+                let comparison = Self::compare(&actual, &expected);
+                match comparison {
+                    Comparison::Match => {
+                        observe(TestOutcome::SnapshotMatch {
+                            path: snapshot_path.to_owned(),
+                        });
+                        Ok(Evaluation::Success)
+                    }
+                    Comparison::Mismatch => {
+                        observe(TestOutcome::SnapshotMismatch {
+                            expected,
+                            actual: actual.clone(),
+                            path: snapshot_path.to_owned(),
+                        });
+                        Ok(Evaluation::Failure)
+                    }
+                }
+            }
+        }
     }
 
     fn stdout_snapshot_path(&self) -> PathBuf {

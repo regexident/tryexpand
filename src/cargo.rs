@@ -66,11 +66,7 @@ pub(crate) struct Expansion {
     pub evaluation: Evaluation,
 }
 
-pub(crate) fn expand(
-    project: &Project,
-    test: &Test,
-    options: &Option<Options>,
-) -> Result<Expansion> {
+pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Result<Expansion> {
     let mut cargo = cargo(project);
     let cargo = cargo
         .arg("expand")
@@ -79,12 +75,10 @@ pub(crate) fn expand(
         .arg("--theme")
         .arg("none");
 
-    if let Some(options) = options {
-        cargo.args(&options.args);
+    cargo.args(&options.args);
 
-        for (key, value) in &options.env {
-            cargo.env(key, value);
-        }
+    for (key, value) in &options.env {
+        cargo.env(key, value);
     }
 
     let output = cargo
