@@ -50,7 +50,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Other
 
-- n/a
+- Improved error messages.
 
 ## [0.3.0] - 2024-01-13
 
