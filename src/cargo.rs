@@ -60,15 +60,16 @@ fn make_rustflags_env() -> OsString {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub(crate) struct Expansion {
+pub(crate) struct CargoOutput {
     pub stdout: Option<String>,
     pub stderr: Option<String>,
     pub evaluation: TestStatus,
 }
 
-pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Result<Expansion> {
+pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Result<CargoOutput> {
     let mut cargo = cargo(project);
-    let cargo = cargo
+
+    cargo
         .arg("expand")
         .arg("--bin")
         .arg(&test.bin)
@@ -81,7 +82,11 @@ pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Resul
         cargo.env(key, value);
     }
 
-    let output = cargo
+    run(cargo, project, test)
+}
+
+fn run(mut command: Command, project: &Project, test: &Test) -> Result<CargoOutput> {
+    let output = command
         .output()
         .map_err(|err| Error::CargoExpandExecution(err.to_string()))?;
 
@@ -97,13 +102,13 @@ pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Resul
     };
 
     if is_success {
-        Ok(Expansion {
+        Ok(CargoOutput {
             stdout: success_stdout(stdout, project, test),
             stderr: success_stderr(stderr, project, test),
             evaluation: TestStatus::Success,
         })
     } else {
-        Ok(Expansion {
+        Ok(CargoOutput {
             stdout: failure_stdout(stdout, project, test),
             stderr: failure_stderr(stderr, project, test),
             evaluation: TestStatus::Failure,
