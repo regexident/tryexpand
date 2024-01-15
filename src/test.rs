@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
-    cargo::{self, Expansion},
+    cargo::{self, CargoOutput},
     error::Result,
     utils, Options, Project,
 };
@@ -104,7 +104,7 @@ impl Test {
         options: &Options,
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<TestStatus> {
-        let Expansion {
+        let CargoOutput {
             stdout,
             stderr,
             evaluation,
