@@ -13,7 +13,7 @@ use crate::{
     error::{Error, Result},
     message,
     project::Project,
-    test::{Test, TestBehavior, TestPlan, TestResult},
+    test::{Test, TestBehavior, TestPlan, TestStatus},
     Options, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
@@ -166,8 +166,8 @@ impl TestSuite {
                 message::report_outcome(&test_path, &outcome);
 
                 match outcome.as_result() {
-                    TestResult::Success => {}
-                    TestResult::Failure => {
+                    TestStatus::Success => {}
+                    TestStatus::Failure => {
                         failures.insert(test_path.clone());
                     }
                 }

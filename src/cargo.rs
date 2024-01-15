@@ -6,7 +6,7 @@ use crate::{
     error::{Error, Result},
     normalization::{failure_stderr, failure_stdout, success_stderr, success_stdout},
     project::Project,
-    test::{Test, TestEvaluation},
+    test::{Test, TestStatus},
     Options,
 };
 
@@ -63,7 +63,7 @@ fn make_rustflags_env() -> OsString {
 pub(crate) struct Expansion {
     pub stdout: Option<String>,
     pub stderr: Option<String>,
-    pub evaluation: TestEvaluation,
+    pub evaluation: TestStatus,
 }
 
 pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Result<Expansion> {
@@ -100,13 +100,13 @@ pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Resul
         Ok(Expansion {
             stdout: success_stdout(stdout, project, test),
             stderr: success_stderr(stderr, project, test),
-            evaluation: TestEvaluation::Success,
+            evaluation: TestStatus::Success,
         })
     } else {
         Ok(Expansion {
             stdout: failure_stdout(stdout, project, test),
             stderr: failure_stderr(stderr, project, test),
-            evaluation: TestEvaluation::Failure,
+            evaluation: TestStatus::Failure,
         })
     }
 }
