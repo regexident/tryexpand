@@ -150,9 +150,10 @@ pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
         .arg("--theme")
         .arg("none")
         .stdout(std::process::Stdio::piped())
-        .spawn()?
+        .spawn()
+        .map_err(Error::SpawningProcessFailed)?
         .stdout
-        .ok_or(Error::CargoFail)?;
+        .ok_or(Error::StdOutUnavailable)?;
 
     let reader = std::io::BufReader::new(stdout);
 

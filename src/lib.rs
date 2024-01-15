@@ -10,6 +10,7 @@ mod normalization;
 mod project;
 mod run;
 mod test;
+mod utils;
 
 pub(crate) const TRYEXPAND_ENV_KEY: &str = "TRYEXPAND";
 pub(crate) const TRYEXPAND_ENV_VAL_OVERWRITE: &str = "overwrite";

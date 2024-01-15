@@ -12,6 +12,7 @@ use crate::{
     error::{Error, Result},
     manifest,
     test::Test,
+    utils,
 };
 
 #[derive(Debug)]
@@ -73,24 +74,27 @@ impl Project {
         };
 
         let manifest = manifest::cargo_manifest(package, &test_crate_name, &project)?;
-        let manifest_toml = basic_toml::to_string(&manifest)?;
+        let manifest_toml =
+            basic_toml::to_string(&manifest).map_err(Error::CargoManifestSerializationFailed)?;
 
         let config = cargo::make_config();
-        let config_toml = basic_toml::to_string(&config)?;
+        let config_toml =
+            basic_toml::to_string(&config).map_err(Error::CargoConfigSerializationFailed)?;
 
         if project.dir.exists() {
             // Remove remaining artifacts from previous runs if exist.
             // For example, if the user stops the test with Ctrl-C during a previous
             // run, the destructor of Project will not be called.
-            fs::remove_dir_all(&project.dir)?;
+            utils::remove_dir_all(&project.dir)?;
         }
 
-        fs::create_dir_all(project.dir.join(".cargo"))?;
-        fs::write(project.dir.join(".cargo").join("config"), config_toml)?;
-        fs::write(project.dir.join("Cargo.toml"), manifest_toml)?;
-        fs::write(project.dir.join("lib.rs"), b"\n")?;
+        utils::create_dir_all(project.dir.join(".cargo"))?;
 
-        fs::create_dir_all(&project.target_dir)?;
+        utils::write(project.dir.join(".cargo").join("config"), config_toml)?;
+        utils::write(project.dir.join("Cargo.toml"), manifest_toml)?;
+        utils::write(project.dir.join("lib.rs"), b"\n")?;
+
+        utils::create_dir_all(&project.target_dir)?;
 
         cargo::build_dependencies(&project)?;
 
