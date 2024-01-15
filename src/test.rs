@@ -13,13 +13,13 @@ pub(crate) enum TestBehavior {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum Evaluation {
+pub(crate) enum TestEvaluation {
     Success,
     Failure,
 }
 
-pub(crate) type TestExpectation = Evaluation;
-pub(crate) type TestResult = Evaluation;
+pub(crate) type TestExpectation = TestEvaluation;
+pub(crate) type TestResult = TestEvaluation;
 
 #[derive(Clone, Debug)]
 pub(crate) enum TestOutcome {
@@ -106,7 +106,7 @@ impl Test {
         project: &Project,
         options: &Options,
         observe: &mut dyn FnMut(TestOutcome),
-    ) -> Result<Evaluation> {
+    ) -> Result<TestEvaluation> {
         let Expansion {
             stdout,
             stderr,
@@ -115,21 +115,21 @@ impl Test {
 
         // First we check for unexpected successes/failures and bail out right away:
         match (evaluation, plan.expectation) {
-            (Evaluation::Success, Evaluation::Failure) => {
+            (TestEvaluation::Success, TestEvaluation::Failure) => {
                 let Some(stdout) = stdout.clone() else {
                     return Err(crate::error::Error::UnexpectedEmptyStdOut);
                 };
                 observe(TestOutcome::UnexpectedSuccess { stdout });
-                return Ok(Evaluation::Failure);
+                return Ok(TestEvaluation::Failure);
             }
-            (Evaluation::Failure, Evaluation::Success) => {
+            (TestEvaluation::Failure, TestEvaluation::Success) => {
                 let Some(stderr) = stderr.clone() else {
                     return Err(crate::error::Error::UnexpectedEmptyStdErr);
                 };
                 observe(TestOutcome::UnexpectedFailure {
                     stderr: stderr.clone(),
                 });
-                return Ok(Evaluation::Failure);
+                return Ok(TestEvaluation::Failure);
             }
             (_, _) => {}
         }
@@ -138,11 +138,11 @@ impl Test {
         let stderr_snapshot_path = self.stderr_snapshot_path();
 
         let snapshots = match evaluation {
-            Evaluation::Success => [
+            TestEvaluation::Success => [
                 (&stdout_snapshot_path, stdout),
                 (&stderr_snapshot_path, None),
             ],
-            Evaluation::Failure => [
+            TestEvaluation::Failure => [
                 (&stdout_snapshot_path, stdout),
                 (&stderr_snapshot_path, stderr),
             ],
@@ -186,9 +186,9 @@ impl Test {
         actual: Option<String>,
         snapshot_path: &Path,
         observe: &mut dyn FnMut(TestOutcome),
-    ) -> Result<Evaluation> {
+    ) -> Result<TestEvaluation> {
         let Some(actual) = actual else {
-            return Ok(Evaluation::Success);
+            return Ok(TestEvaluation::Success);
         };
 
         if let Some(expected) = expected {
@@ -210,7 +210,7 @@ impl Test {
             });
         }
 
-        Ok(Evaluation::Success)
+        Ok(TestEvaluation::Success)
     }
 
     fn evaluate_snapshot_expecting_files(
@@ -219,22 +219,22 @@ impl Test {
         actual: Option<String>,
         snapshot_path: &Path,
         observe: &mut dyn FnMut(TestOutcome),
-    ) -> Result<Evaluation> {
+    ) -> Result<TestEvaluation> {
         match (actual, expected) {
-            (None, None) => Ok(Evaluation::Success),
+            (None, None) => Ok(TestEvaluation::Success),
             (None, Some(expected)) => {
                 observe(TestOutcome::SnapshotUnexpected {
                     content: expected,
                     path: snapshot_path.to_owned(),
                 });
-                Ok(Evaluation::Failure)
+                Ok(TestEvaluation::Failure)
             }
             (Some(actual), None) => {
                 observe(TestOutcome::SnapshotExpected {
                     content: actual,
                     path: snapshot_path.to_owned(),
                 });
-                Ok(Evaluation::Failure)
+                Ok(TestEvaluation::Failure)
             }
             (Some(actual), Some(expected)) => {
                 let comparison = Self::compare(&actual, &expected);
@@ -243,7 +243,7 @@ impl Test {
                         observe(TestOutcome::SnapshotMatch {
                             path: snapshot_path.to_owned(),
                         });
-                        Ok(Evaluation::Success)
+                        Ok(TestEvaluation::Success)
                     }
                     Comparison::Mismatch => {
                         observe(TestOutcome::SnapshotMismatch {
@@ -251,7 +251,7 @@ impl Test {
                             actual: actual.clone(),
                             path: snapshot_path.to_owned(),
                         });
-                        Ok(Evaluation::Failure)
+                        Ok(TestEvaluation::Failure)
                     }
                 }
             }
