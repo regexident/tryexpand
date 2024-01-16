@@ -195,8 +195,8 @@ impl Test {
         behavior: TestBehavior,
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<TestStatus> {
-        let stdout_snapshot_path = self.expand_out_rs_snapshot_path();
-        let stderr_snapshot_path = self.expand_err_txt_snapshot_path();
+        let stdout_snapshot_path = self.path.with_extension(crate::OUT_RS_FILE_SUFFIX);
+        let stderr_snapshot_path = self.path.with_extension(crate::ERR_TXT_FILE_SUFFIX);
 
         let snapshots = match output.evaluation {
             TestStatus::Success => [
@@ -372,14 +372,6 @@ impl Test {
                 }
             }
         }
-    }
-
-    fn expand_out_rs_snapshot_path(&self) -> PathBuf {
-        self.path.with_extension(crate::EXPAND_OUT_RS_FILE_SUFFIX)
-    }
-
-    fn expand_err_txt_snapshot_path(&self) -> PathBuf {
-        self.path.with_extension(crate::EXPAND_ERR_TXT_FILE_SUFFIX)
     }
 
     fn compare(actual: &str, expected: &str) -> Comparison {

@@ -71,9 +71,7 @@ impl TestSuite {
                         paths
                             .into_iter()
                             .filter(|path| {
-                                !path
-                                    .to_string_lossy()
-                                    .ends_with(crate::EXPAND_OUT_RS_FILE_SUFFIX)
+                                !path.to_string_lossy().ends_with(crate::OUT_RS_FILE_SUFFIX)
                             })
                             .collect(),
                     )

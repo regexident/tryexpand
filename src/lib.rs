@@ -19,8 +19,8 @@ pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 
 pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFACTS";
 
-pub(crate) const EXPAND_OUT_RS_FILE_SUFFIX: &str = "expand.out.rs";
-pub(crate) const EXPAND_ERR_TXT_FILE_SUFFIX: &str = "expand.err.txt";
+pub(crate) const OUT_RS_FILE_SUFFIX: &str = "out.rs";
+pub(crate) const ERR_TXT_FILE_SUFFIX: &str = "err.txt";
 
 pub use self::options::Options;
 
@@ -66,7 +66,7 @@ macro_rules! run_test_suite {
 ///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
+/// Will panic if matching `.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand<I, P>(paths: I)
 where
@@ -85,7 +85,7 @@ where
 ///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
+/// Will panic if matching `.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_checking<I, P>(paths: I)
 where
@@ -104,7 +104,7 @@ where
 ///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
+/// Will panic if matching `.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_fail<I, P>(paths: I)
 where

@@ -106,17 +106,17 @@ For debugging purposes you may want to see the output for all tests, not just th
 cargo test -- --no-capture
 ```
 
-Each `tryexpand` test will invoke the `cargo expand` command on each of the source files that matches the glob pattern and will compare the expansion result with the corresponding `*.expand.out.rs` file.
+Each `tryexpand` test will invoke the `cargo expand` command on each of the source files that matches the glob pattern and will compare the expansion result with the corresponding `*.out.rs` file.
 
-If the environment variable `TRYEXPAND=overwrite` is provided (e.g. `$ TRYEXPAND=overwrite cargo test`), then `*.expand.out.rs` snapshot files will
+If the environment variable `TRYEXPAND=overwrite` is provided (e.g. `$ TRYEXPAND=overwrite cargo test`), then `*.out.rs` snapshot files will
 be created, or overwritten, if one already exists. Snapshot files should get checked into version control.
 
-Hand-writing `*.expand.out.rs` files is not recommended.
+Hand-writing `*.out.rs` files is not recommended.
 
 Possible test outcomes are:
 
-- **Pass**: expansion succeeded and the result is the same as in the `.expand.out.rs` file.
-- **Failure**: expansion failed, is missing or was different from the existing `.expand.out.rs` file content.
+- **Pass**: expansion succeeded and the result is the same as in the `.out.rs` file.
+- **Failure**: expansion failed, is missing or was different from the existing `.out.rs` file content.
 
 ### Performance considerations
 
