@@ -112,10 +112,7 @@ mod expand_opts {
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
-        );
+        tryexpand::expand_opts(Vec::<&str>::new(), tryexpand::Options::default());
     }
 
     #[test]
@@ -123,7 +120,7 @@ mod expand_opts {
     pub fn no_files_found() {
         tryexpand::expand_opts(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+            tryexpand::Options::default(),
         );
     }
 }
@@ -147,10 +144,7 @@ mod expand_opts_checking {
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts_checking(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
-        );
+        tryexpand::expand_opts_checking(Vec::<&str>::new(), tryexpand::Options::default());
     }
 
     #[test]
@@ -158,7 +152,7 @@ mod expand_opts_checking {
     pub fn no_files_found() {
         tryexpand::expand_opts_checking(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+            tryexpand::Options::default(),
         );
     }
 }
@@ -172,7 +166,7 @@ mod expand_opts_fail {
     pub fn pass() {
         tryexpand::expand_opts_fail(
             [PASS_PATTERN],
-            tryexpand::Options::default().args(["--features", "test-feature"]),
+            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
         );
     }
 
@@ -188,10 +182,7 @@ mod expand_opts_fail {
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts_fail(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
-        );
+        tryexpand::expand_opts_fail(Vec::<&str>::new(), tryexpand::Options::default());
     }
 
     #[test]
@@ -199,7 +190,7 @@ mod expand_opts_fail {
     pub fn no_files_found() {
         tryexpand::expand_opts_fail(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+            tryexpand::Options::default(),
         );
     }
 }
