@@ -13,19 +13,37 @@ mod expand {
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand([FAIL_PATTERN]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts(
+            [FAIL_PATTERN],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand(Vec::<&str>::new());
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
     pub fn no_files_found() {
-        tryexpand::expand([PASS_PATTERN, UNMATCHED_PATTERN]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts(
+            [PASS_PATTERN, UNMATCHED_PATTERN],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 }
 
@@ -48,13 +66,25 @@ mod expand_checking {
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_checking(Vec::<&str>::new());
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_checking(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
     pub fn no_files_found() {
-        tryexpand::expand_checking([PASS_PATTERN, UNMATCHED_PATTERN]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_checking(
+            [PASS_PATTERN, UNMATCHED_PATTERN],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 }
 
@@ -71,19 +101,37 @@ mod expand_fail {
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand_fail([FAIL_PATTERN]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_fail(
+            [FAIL_PATTERN],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand(Vec::<&str>::new());
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_fail(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
     pub fn no_files_found() {
-        tryexpand::expand([PASS_PATTERN, UNMATCHED_PATTERN]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_fail(
+            [PASS_PATTERN, UNMATCHED_PATTERN],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 }
 
@@ -103,24 +151,35 @@ mod expand_opts {
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
+        // We need to test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
         tryexpand::expand_opts(
             [FAIL_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+            tryexpand::Options::default()
+                .args(["--features", "placebo-test-feature"])
+                .skip_overwrite(),
         );
     }
 
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts(Vec::<&str>::new(), tryexpand::Options::default());
+        // We need to test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
     #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
     pub fn no_files_found() {
+        // We need to test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
         tryexpand::expand_opts(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default(),
+            tryexpand::Options::default().skip_overwrite(),
         );
     }
 }
@@ -144,7 +203,10 @@ mod expand_opts_checking {
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts_checking(Vec::<&str>::new(), tryexpand::Options::default());
+        tryexpand::expand_opts_checking(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
@@ -152,7 +214,7 @@ mod expand_opts_checking {
     pub fn no_files_found() {
         tryexpand::expand_opts_checking(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default(),
+            tryexpand::Options::default().skip_overwrite(),
         );
     }
 }
@@ -175,14 +237,19 @@ mod expand_opts_fail {
     pub fn fail() {
         tryexpand::expand_opts_fail(
             [FAIL_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
+            tryexpand::Options::default()
+                .args(["--features", "placebo-test-feature"])
+                .skip_overwrite(),
         );
     }
 
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        tryexpand::expand_opts_fail(Vec::<&str>::new(), tryexpand::Options::default());
+        tryexpand::expand_opts_fail(
+            Vec::<&str>::new(),
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 
     #[test]
@@ -190,7 +257,7 @@ mod expand_opts_fail {
     pub fn no_files_found() {
         tryexpand::expand_opts_fail(
             [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default(),
+            tryexpand::Options::default().skip_overwrite(),
         );
     }
 }

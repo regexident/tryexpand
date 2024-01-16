@@ -12,7 +12,13 @@ mod expand_checking {
     #[test]
     #[should_panic(expected = "tests failed")]
     pub fn fail() {
-        tryexpand::expand_checking(["tests/expand_checking/fail/*.rs"]);
+        // We need to use the `_opts` variant here as we need to
+        // run the test with `options.skip_overwrite = true`
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand_opts_checking(
+            ["tests/expand_checking/fail/*.rs"],
+            tryexpand::Options::default().skip_overwrite(),
+        );
     }
 }
 
@@ -43,7 +49,9 @@ mod expand_opts_checking {
     pub fn fail() {
         tryexpand::expand_opts_checking(
             ["tests/expand_opts_checking/fail/*.rs"],
-            tryexpand::Options::default().args(["--features", "test-feature"]),
+            tryexpand::Options::default()
+                .args(["--features", "test-feature"])
+                .skip_overwrite(),
         );
     }
 }
