@@ -1,12 +1,16 @@
 use std::collections::HashMap;
 
+/// Options for passing to `cargo expand`/`cargo check`.
 #[derive(Clone, Default, Debug)]
 pub struct Options {
+    // Additional arguments to pass to `cargo expand`/`cargo check`.
     pub args: Vec<String>,
+    // Additional env variables to pass to `cargo expand`/`cargo check`.
     pub env: HashMap<String, String>,
 }
 
 impl Options {
+    // Appends additional arguments to `self.args`.
     pub fn args<I, T>(mut self, args: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -16,6 +20,7 @@ impl Options {
         self
     }
 
+    // Appends additional key-value pairs to `self.env`.
     pub fn env<I, K, V>(mut self, env: I) -> Self
     where
         I: IntoIterator<Item = (K, V)>,
