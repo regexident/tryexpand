@@ -64,14 +64,9 @@ macro_rules! run_test_suite {
 
 /// Attempts to expand macros in files that match glob pattern.
 ///
-/// # Refresh behavior
-///
-/// If no matching `.expand.out.rs` files present, they will be created and result of expansion
-/// will be written into them.
-///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
+/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand<I, P>(paths: I)
 where
@@ -88,14 +83,9 @@ where
 
 /// Attempts to expand macros in files that match glob pattern, as well as check their expansion.
 ///
-/// # Refresh behavior
-///
-/// If no matching `.expand.out.rs` files present, they will be created and result of expansion
-/// will be written into them.
-///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
+/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_checking<I, P>(paths: I)
 where
@@ -112,14 +102,9 @@ where
 
 /// Attempts to expand macros in files that match glob pattern and expects the expansion to fail.
 ///
-/// # Refresh behavior
-///
-/// If no matching `.expand.out.rs` files present, they will be created and result (error) of expansion
-/// will be written into them.
-///
 /// # Panics
 ///
-/// Will panic if matching `.expand.out.rs` file is present, but has different expanded code in it.
+/// Will panic if matching `.expand.out.rs` file is missing, or present but has different expanded code in it.
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand_fail<I, P>(paths: I)
 where
