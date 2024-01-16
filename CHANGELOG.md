@@ -21,6 +21,7 @@ Please make sure to add your changes to the appropriate categories:
 ### Added
 
 - Support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
+- Added field `skip_overwrite: bool` to `Options` for selectively suppressing snapshots.
 
 ### Changed
 
