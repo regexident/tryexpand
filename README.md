@@ -32,40 +32,59 @@ cargo install --dev tryexpand
 Then under your crate's `tests/` directory, create `tests.rs` file containing the following code:
 
 ```rust
-// Use `expand()` or `expand_opts()` to assert successful expansion:
+// Use `expand()` or `expand_opts()` to assert
+// successful expansion (ignoring type-checking of the expansion):
 #[test]
-pub fn pass() {
+pub fn expand_pass() {
     tryexpand::expand(
         // One or more glob patterns:
-        ["tests/expand_pass/*.rs"]
+        ["tests/expand/pass/*.rs"]
     );
     // or if you need to pass additional CLI arguments:
     tryexpand::expand_opts(
         // One or more glob patterns:
-        ["tests/expand_pass/*.rs"],
+        ["tests/expand/pass/*.rs"],
         // Arguments to pass to `cargo expand` command:
         ["--features", "test-feature"]
     );
 }
 
-// Use `expand_fail()` or `expand_opts_fail()` to assert unsuccessful expansion:
+// Use `expand_checked()` or `expand_opts_checked()` to
+// assert successful expansion and(!) type-checking of the expansion:
 #[test]
-pub fn fail() {
+pub fn expand_checked_pass() {
+    tryexpand::expand_checked(
+        // One or more glob patterns:
+        ["tests/expand/checked_pass/*.rs"]
+    );
+    // or if you need to pass additional CLI arguments:
+    tryexpand::expand_opts_checked(
+        // One or more glob patterns:
+        ["tests/expand/checked_pass/*.rs"],
+        // Arguments to pass to `cargo expand` command:
+        ["--features", "test-feature"]
+    );
+}
+
+// Use `expand_fail()` or `expand_opts_fail()` to assert
+// unsuccessful expansion (ignoring type-checking of the expansion):
+#[test]
+pub fn expand_fail() {
     tryexpand::expand_fail(
         // One or more glob patterns:
-        ["tests/expand_fail/*.rs"]
+        ["tests/expand/fail/*.rs"]
     );
     // or if you need to pass additional CLI arguments:
     tryexpand::expand_opts_fail(
         // One or more glob patterns:
-        ["tests/expand_fail/*.rs"],
+        ["tests/expand/fail/*.rs"],
         // Arguments to pass to `cargo expand` command:
         ["--features", "test-feature"]
     );
 }
 ```
 
-Next populate the `tests/expand_pass/` and `tests/expand_fail/` directories with Rust source files.
+Next populate the `tests/expand/pass/`, `tests/expand/checked_pass/` and `tests/expand/fail/` directories with Rust source files.
 
 ### Running tests
 
