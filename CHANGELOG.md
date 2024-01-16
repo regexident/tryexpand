@@ -20,16 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
-- Added field `skip_overwrite: bool` to `Options` for selectively suppressing snapshots.
+- n/a
 
 ### Changed
 
-- Updated dependencies:
-  - `serde` from `1.0.105` to `1.0.194`
-- Changed file extensions:
-  - from `.expand.out.rs` to `.out.rs`
-  - from `.expand.err.txt` to `.err.txt`
+- n/a
 
 ### Deprecated
 
@@ -41,8 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- External dependencies of the crate are now properly mirrored by the test projects.
-- Features of the crate are now properly mirrored by the test projects.
+- n/a
 
 ### Performance
 
@@ -55,6 +49,26 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.6.0] - 2024-01-16
+
+### Added
+
+- Support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
+- Added field `skip_overwrite: bool` to `Options` for selectively suppressing snapshots.
+
+### Changed
+
+- Updated dependencies:
+  - `serde` from `1.0.105` to `1.0.194`
+- Changed file extensions:
+  - from `.expand.out.rs` to `.out.rs`
+  - from `.expand.err.txt` to `.err.txt`
+
+### Fixed
+
+- External dependencies of the crate are now properly mirrored by the test projects.
+- Features of the crate are now properly mirrored by the test projects.
 
 ## [0.5.0] - 2024-01-15
 
