@@ -74,10 +74,12 @@ pub(crate) enum TestOutcome {
         content: String,
     },
     UnexpectedSuccess {
+        source: String,
         stdout: String,
         stderr: Option<String>,
     },
     UnexpectedFailure {
+        source: String,
         stdout: Option<String>,
         stderr: String,
     },
@@ -136,7 +138,8 @@ impl Test {
                 let output = cargo::expand(project, self, options)?;
 
                 if output.evaluation != *expectation {
-                    return self.report_unexpected(&output, observe);
+                    let input = String::from_utf8_lossy(&utils::read(&self.path)?).into_owned();
+                    return self.report_unexpected(&input, &output, observe);
                 }
 
                 self.evaluate_expand(output, *behavior, observe)
@@ -147,19 +150,26 @@ impl Test {
                 // It only makes sense to run `cargo check` if `cargo expand` was successful:
                 let combined_output = if expand_output.evaluation == TestStatus::Success {
                     let check_output = cargo::check(project, self, options)?;
-                    let combined_evaluation = expand_output.evaluation & check_output.evaluation;
+
+                    // The expansion was successful, so we take its output:
+                    let stdout = expand_output.stdout.clone();
+                    // The expansion was successful, so all we care about is the check's errors:
+                    let stderr = check_output.stderr.clone();
+                    // Either both succeeded, or nothing did:
+                    let evaluation = expand_output.evaluation & check_output.evaluation;
 
                     CargoOutput {
-                        stdout: expand_output.stdout.clone(),
-                        stderr: check_output.stderr.clone(),
-                        evaluation: combined_evaluation,
+                        stdout,
+                        stderr,
+                        evaluation,
                     }
                 } else {
                     expand_output
                 };
 
-                if combined_output.evaluation == *expectation {
-                    return self.report_unexpected(&combined_output, observe);
+                if combined_output.evaluation != *expectation {
+                    let input = String::from_utf8_lossy(&utils::read(&self.path)?).into_owned();
+                    return self.report_unexpected(&input, &combined_output, observe);
                 }
 
                 self.evaluate_expand(combined_output, *behavior, observe)
@@ -250,6 +260,7 @@ impl Test {
 
     fn report_unexpected(
         &mut self,
+        input: &str,
         output: &CargoOutput,
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<TestStatus> {
@@ -259,6 +270,7 @@ impl Test {
                     return Err(crate::error::Error::UnexpectedEmptyStdOut);
                 };
                 observe(TestOutcome::UnexpectedSuccess {
+                    source: input.to_owned(),
                     stdout,
                     stderr: output.stderr.clone(),
                 });
@@ -269,6 +281,7 @@ impl Test {
                     return Err(crate::error::Error::UnexpectedEmptyStdErr);
                 };
                 observe(TestOutcome::UnexpectedFailure {
+                    source: input.to_owned(),
                     stdout: output.stdout.clone(),
                     stderr: stderr.clone(),
                 });

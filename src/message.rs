@@ -4,8 +4,7 @@ use yansi::Paint;
 
 use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
 
-const COMPARISON_CONTEXT: usize = 2;
-const NON_COMPARISON_CONTEXT: usize = 5;
+const DIFF_MAX_CONTEXT: usize = 2;
 
 pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
     match outcome {
@@ -35,11 +34,19 @@ pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
         TestOutcome::SnapshotUnexpected { path, content } => {
             snapshot_unexpected(source_path, path, content);
         }
-        TestOutcome::UnexpectedSuccess { stdout, stderr } => {
-            unexpected_success(source_path, stdout, stderr.as_deref());
+        TestOutcome::UnexpectedSuccess {
+            source,
+            stdout,
+            stderr,
+        } => {
+            unexpected_success(source_path, source, stdout, stderr.as_deref());
         }
-        TestOutcome::UnexpectedFailure { stdout, stderr } => {
-            unexpected_failure(source_path, stdout.as_deref(), stderr);
+        TestOutcome::UnexpectedFailure {
+            source,
+            stdout,
+            stderr,
+        } => {
+            unexpected_failure(source_path, source, stdout.as_deref(), stderr);
         }
     }
 }
@@ -57,7 +64,9 @@ pub(crate) fn snapshot_mismatch(path: &Path, snapshot_path: &Path, expected: &st
         path = snapshot_path.display()
     );
     eprintln!();
-    print_diff(expected, actual, COMPARISON_CONTEXT);
+    eprintln!("DIFF:");
+    eprintln!();
+    print_diff(expected, actual, DIFF_MAX_CONTEXT);
     eprintln!();
     print_overwrite_hint();
 
@@ -80,7 +89,9 @@ pub(crate) fn snapshot_created(path: &Path, snapshot_path: &Path, after: &str) {
         ))
     );
     eprintln!();
-    print_diff("", after, 5);
+    eprintln!("SNAPSHOT:");
+    eprintln!();
+    print_lines(after, Paint::blue);
 
     eprintln!("--------------------------");
 }
@@ -101,7 +112,7 @@ pub(crate) fn snapshot_updated(path: &Path, snapshot_path: &Path, before: &str, 
         ))
     );
     eprintln!();
-    print_diff(before, after, COMPARISON_CONTEXT);
+    print_diff(before, after, DIFF_MAX_CONTEXT);
 
     eprintln!("--------------------------");
 }
@@ -113,12 +124,14 @@ pub(crate) fn snapshot_expected(path: &Path, snapshot_path: &Path, output: &str)
     eprintln!(
         "{}",
         Paint::red(format!(
-            "Expected snapshot at {path} with content:",
+            "Expected snapshot at {path}",
             path = snapshot_path.display()
         ))
     );
     eprintln!();
-    print_trimmed_lines(output, Paint::red);
+    eprintln!("CONTENT:");
+    eprintln!();
+    print_lines(output, Paint::red);
     eprintln!();
     print_overwrite_hint();
 
@@ -132,56 +145,66 @@ pub(crate) fn snapshot_unexpected(path: &Path, snapshot_path: &Path, output: &st
     eprintln!(
         "{}",
         Paint::red(format!(
-            "Unexpected snapshot at {path} with content:",
+            "Unexpected snapshot at {path}",
             path = snapshot_path.display()
         ))
     );
     eprintln!();
-    print_trimmed_lines(output, Paint::red);
+    eprintln!("SNAPSHOT:");
+    eprintln!();
+    print_lines(output, Paint::red);
     eprintln!();
     print_remove_hint(snapshot_path);
 
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_success(path: &Path, stdout: &str, stderr: Option<&str>) {
+pub(crate) fn unexpected_success(path: &Path, source: &str, stdout: &str, stderr: Option<&str>) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Unexpected success!"));
     eprintln!();
-
-    eprintln!("STDOUT:");
+    eprintln!("SOURCE:");
     eprintln!();
-    print_trimmed_lines(stdout, Paint::blue);
+    print_lines(source, Paint::blue);
+
+    eprintln!();
+    eprintln!("EXPANDED:");
+    eprintln!();
+    print_lines(stdout, Paint::blue);
 
     if let Some(stderr) = stderr {
         eprintln!();
-        eprintln!("STDERR:");
+        eprintln!("ERROR:");
         eprintln!();
-        print_trimmed_lines(stderr, Paint::red);
+        print_lines(stderr, Paint::red);
     }
 
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_failure(path: &Path, stdout: Option<&str>, stderr: &str) {
+pub(crate) fn unexpected_failure(path: &Path, source: &str, stdout: Option<&str>, stderr: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Unexpected failure!"));
     eprintln!();
+    eprintln!("SOURCE:");
+    eprintln!();
+    print_lines(source, Paint::blue);
 
     if let Some(stdout) = stdout {
-        eprintln!("STDOUT:");
         eprintln!();
-        print_trimmed_lines(stdout, Paint::blue);
+        eprintln!("EXPANDED:");
         eprintln!();
+        print_lines(stdout, Paint::blue);
     }
 
-    eprintln!("STDERR:");
     eprintln!();
-    print_trimmed_lines(stderr, Paint::red);
+    eprintln!("ERROR:");
+    eprintln!();
+    print_lines(stderr, Paint::red);
 
     eprintln!("--------------------------");
 }
@@ -190,7 +213,10 @@ pub(crate) fn command_failure(path: &Path, error: &str) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
-    eprintln!("{}", Paint::red("Command failure:"));
+    eprintln!("{}", Paint::red("Command failure!"));
+    eprintln!();
+
+    eprintln!("ERROR:");
     eprintln!();
     eprintln!("{}", Paint::red(error.trim()));
     eprintln!();
@@ -241,14 +267,12 @@ fn print_remove_hint(path: &Path) {
     );
 }
 
-fn print_trimmed_lines<F>(string: &str, f: F)
+fn print_lines<F>(string: &str, f: F)
 where
     F: Fn(String) -> Paint<String>,
 {
-    let context_len = NON_COMPARISON_CONTEXT;
     let lines: Vec<&str> = string.lines().collect();
-    let trimmed_lines = trim_infix(lines.as_slice(), context_len, context_len);
-    for line in trimmed_lines {
+    for line in lines {
         eprintln!("{}", f(line.to_owned()));
     }
 }
