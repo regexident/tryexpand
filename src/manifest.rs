@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use cargo_metadata::{Edition as SourceEdition, Package as SourcePackage};
+use cargo_metadata::{
+    Dependency as SourceDependency, DependencyKind as SourceDependencyKind,
+    Edition as SourceEdition, Metadata as SourceMetadata, Package as SourcePackage,
+};
 use cargo_toml::{
     Badges, Dependency, DependencyDetail, DepsSet, Edition, Inheritable, Manifest, Package,
     PatchSet, Product, Profiles, TargetDepsSet, Workspace,
@@ -13,6 +16,7 @@ use crate::{
 };
 
 pub(crate) fn cargo_manifest<'a, I>(
+    _source_metadata: &SourceMetadata,
     source_package: &SourcePackage,
     test_crate_name: &str,
     project: &Project,
@@ -42,6 +46,8 @@ where
         .map(|version| Inheritable::Set(version.to_string()));
 
     let mut dependencies = BTreeMap::default();
+    let mut dev_dependencies = BTreeMap::default();
+    let mut build_dependencies = BTreeMap::default();
 
     let dependency_path = project.manifest_dir.display().to_string();
     let mut dependency = DependencyDetail::default();
@@ -54,6 +60,48 @@ where
         dependency_name.to_owned(),
         Dependency::Detailed(Box::new(dependency)),
     );
+
+    for source_dependency in &source_package.dependencies {
+        let SourceDependency {
+            name,
+            source: _,
+            req,
+            kind,
+            optional,
+            uses_default_features,
+            features,
+            target: _,
+            rename,
+            registry,
+            path,
+            ..
+        } = source_dependency;
+
+        let mut dependency = DependencyDetail::default();
+        dependency.package = rename.clone();
+        dependency.version = Some(req.to_string());
+        dependency.optional = *optional;
+        dependency.default_features = *uses_default_features;
+        dependency.features = features.clone();
+        dependency.registry = registry.clone();
+        dependency.path = path.as_ref().map(|path| path.to_string());
+        dependency.default_features = true;
+
+        match kind {
+            SourceDependencyKind::Normal => {
+                dependencies.insert(name.to_owned(), Dependency::Detailed(Box::new(dependency)));
+            }
+            SourceDependencyKind::Development => {
+                dev_dependencies
+                    .insert(name.to_owned(), Dependency::Detailed(Box::new(dependency)));
+            }
+            SourceDependencyKind::Build => {
+                build_dependencies
+                    .insert(name.to_owned(), Dependency::Detailed(Box::new(dependency)));
+            }
+            _ => todo!(),
+        }
+    }
 
     let features = source_package
         .features
@@ -96,8 +144,8 @@ where
         package: Some(package),
         workspace: Some(workspace),
         dependencies,
-        dev_dependencies: DepsSet::default(),
-        build_dependencies: DepsSet::default(),
+        dev_dependencies,
+        build_dependencies,
         target: TargetDepsSet::default(),
         features,
         replace: DepsSet::default(),

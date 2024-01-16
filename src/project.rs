@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_metadata::Package;
+use cargo_metadata::{Metadata, Package};
 
 use crate::{
     cargo::{self},
@@ -23,6 +23,7 @@ pub(crate) struct Project {
 
 impl Project {
     pub(crate) fn new<'a, I>(
+        metadata: &Metadata,
         package: &Package,
         test_suite_id: &str,
         target_dir: &Path,
@@ -51,7 +52,8 @@ impl Project {
             name,
         };
 
-        let manifest = manifest::cargo_manifest(package, &test_crate_name, &project, tests)?;
+        let manifest =
+            manifest::cargo_manifest(metadata, package, &test_crate_name, &project, tests)?;
         let manifest_toml =
             basic_toml::to_string(&manifest).map_err(Error::CargoManifestSerializationFailed)?;
 
