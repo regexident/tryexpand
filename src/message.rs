@@ -266,7 +266,7 @@ fn print_overwrite_hint() {
     eprintln!(
         "{}",
         Paint::cyan(format!(
-            "help: To update the snapshot file run your tests with `{key}={val}`.",
+            "help: Overwrite the snapshot file by running your tests with `{key}={val}`.",
             key = TRYEXPAND_ENV_KEY,
             val = TRYEXPAND_ENV_VAL_OVERWRITE
         ))
@@ -274,12 +274,16 @@ fn print_overwrite_hint() {
 }
 
 fn print_remove_hint(path: &Path) {
-    let path = path.as_os_str();
+    let path = match std::env::current_dir() {
+        Ok(directory) => directory.join(path),
+        Err(_) => path.to_owned(),
+    };
+
+    let path_display = path.display();
+
     eprintln!(
         "{}",
-        Paint::cyan(format!(
-            "help: To remove the snapshot file run `rm {path:?}`.",
-        ))
+        Paint::cyan(format!("help: Remove the snapshot file at {path_display}.",))
     );
 }
 
