@@ -26,6 +26,9 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `serde` from `1.0.105` to `1.0.194`
+- Changed file extensions:
+  - from `.expand.out.rs` to `.out.rs`
+  - from `.expand.err.txt` to `.err.txt`
 
 ### Deprecated
 
