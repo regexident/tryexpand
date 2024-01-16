@@ -75,13 +75,13 @@ pub(crate) enum TestOutcome {
     },
     UnexpectedSuccess {
         source: String,
-        stdout: String,
+        stdout: Option<String>,
         stderr: Option<String>,
     },
     UnexpectedFailure {
         source: String,
         stdout: Option<String>,
-        stderr: String,
+        stderr: Option<String>,
     },
 }
 
@@ -266,24 +266,18 @@ impl Test {
     ) -> Result<TestStatus> {
         match output.evaluation {
             TestStatus::Success => {
-                let Some(stdout) = output.stdout.clone() else {
-                    return Err(crate::error::Error::UnexpectedEmptyStdOut);
-                };
                 observe(TestOutcome::UnexpectedSuccess {
                     source: input.to_owned(),
-                    stdout,
+                    stdout: output.stdout.clone(),
                     stderr: output.stderr.clone(),
                 });
                 Ok(TestStatus::Failure)
             }
             TestStatus::Failure => {
-                let Some(stderr) = output.stderr.clone() else {
-                    return Err(crate::error::Error::UnexpectedEmptyStdErr);
-                };
                 observe(TestOutcome::UnexpectedFailure {
                     source: input.to_owned(),
                     stdout: output.stdout.clone(),
-                    stderr: stderr.clone(),
+                    stderr: output.stderr.clone(),
                 });
                 Ok(TestStatus::Failure)
             }
