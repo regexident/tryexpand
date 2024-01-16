@@ -28,9 +28,7 @@ where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    let test_suite_id = test_suite_id_from_location(location);
-
-    let test_suite = TestSuite::new(patterns, plan, options, &test_suite_id)?;
+    let test_suite = TestSuite::new(patterns, plan, options, location)?;
 
     test_suite.try_run()?;
 
@@ -43,6 +41,7 @@ pub(crate) struct TestSuite {
     pub plan: TestPlan,
     pub tests: Vec<Test>,
     pub options: Options,
+    pub call_site: String,
 }
 
 impl TestSuite {
@@ -51,7 +50,7 @@ impl TestSuite {
         patterns: I,
         plan: TestPlan,
         options: Options,
-        test_suite_id: &str,
+        location: &std::panic::Location,
     ) -> Result<Self>
     where
         I: IntoIterator<Item = P>,
@@ -129,16 +128,26 @@ impl TestSuite {
 
         let tests = Self::tests_for(&crate_name, paths);
 
+        let test_suite_id = test_suite_id_from_location(location);
+
         let project =
-            Project::new(package, test_suite_id, &target_dir, &tests).unwrap_or_else(|err| {
+            Project::new(package, &test_suite_id, &target_dir, &tests).unwrap_or_else(|err| {
                 panic!("Could not create test project: {:#?}", err);
             });
+
+        let call_site = format!(
+            "{file}:{line}:{column}",
+            file = location.file(),
+            line = location.line(),
+            column = location.column(),
+        );
 
         Ok(Self {
             project,
             plan,
             tests,
             options,
+            call_site,
         })
     }
 
@@ -149,11 +158,16 @@ impl TestSuite {
             plan,
             tests,
             options,
+            call_site,
         } = self;
 
         let total_tests = tests.len();
 
-        println!("Running {} macro expansion tests ...!", total_tests);
+        println!(
+            "Running {tests} macro expansion tests from {suite} ...\n",
+            tests = total_tests,
+            suite = call_site
+        );
 
         let mut failures = HashSet::new();
 
@@ -204,6 +218,7 @@ impl TestSuite {
                 writeln!(&mut message, "    {}", failure.display()).unwrap();
             }
 
+            eprintln!();
             panic!("{}", message);
         }
 
