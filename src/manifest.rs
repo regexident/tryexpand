@@ -105,12 +105,15 @@ where
 
     let features = source_package
         .features
-        .keys()
-        .map(|feature| {
-            (
-                feature.clone(),
-                vec![format!("{dependency_name}/{feature}")],
-            )
+        .iter()
+        .map(|(key, values)| {
+            let mut values: Vec<String> = values
+                .iter()
+                .filter(|value| value.starts_with("dep:"))
+                .cloned()
+                .collect();
+            values.push(format!("{dependency_name}/{key}"));
+            (key.clone(), values)
         })
         .collect();
 
