@@ -133,6 +133,18 @@ impl Test {
             expectation,
         } = plan;
 
+        let behavior = if options.skip_overwrite {
+            // If the `skip_overwrite` flag is set we just check files,
+            // instead of overwriting. The main purpose of this behavior
+            // is to allow for our own unit tests to run with `#[should_panic]`
+            // on the same directory (just flipping `pass/` with `fail/` directories)
+            // without it emitting snapshots that would then make the non-inverted
+            // tests fail and vice versa:
+            TestBehavior::ExpectFiles
+        } else {
+            *behavior
+        };
+
         match action {
             TestAction::Expand => {
                 let output = cargo::expand(project, self, options)?;
@@ -142,7 +154,7 @@ impl Test {
                     return self.report_unexpected(&input, &output, observe);
                 }
 
-                self.evaluate_expand(output, *behavior, observe)
+                self.evaluate_expand(output, behavior, observe)
             }
             TestAction::ExpandAndCheck => {
                 let expand_output = cargo::expand(project, self, options)?;
@@ -172,7 +184,7 @@ impl Test {
                     return self.report_unexpected(&input, &combined_output, observe);
                 }
 
-                self.evaluate_expand(combined_output, *behavior, observe)
+                self.evaluate_expand(combined_output, behavior, observe)
             }
         }
     }

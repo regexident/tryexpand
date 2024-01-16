@@ -7,6 +7,8 @@ pub struct Options {
     pub args: Vec<String>,
     // Additional env variables to pass to `cargo expand`/`cargo check`.
     pub env: HashMap<String, String>,
+    // Whether to skip snapshot writing when running with `TRYEXPAND=overwrite`.
+    pub skip_overwrite: bool,
 }
 
 impl Options {
@@ -32,6 +34,11 @@ impl Options {
             let value = value.as_ref().to_owned();
             (key, value)
         }));
+        self
+    }
+
+    pub fn skip_overwrite(mut self) -> Self {
+        self.skip_overwrite = true;
         self
     }
 }
