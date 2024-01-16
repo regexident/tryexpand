@@ -37,7 +37,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- External dependencies of the crate are now properly mirrored by the test projects.
 
 ### Performance
 

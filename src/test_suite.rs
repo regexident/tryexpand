@@ -130,8 +130,8 @@ impl TestSuite {
 
         let test_suite_id = test_suite_id_from_location(location);
 
-        let project =
-            Project::new(package, &test_suite_id, &target_dir, &tests).unwrap_or_else(|err| {
+        let project = Project::new(&metadata, package, &test_suite_id, &target_dir, &tests)
+            .unwrap_or_else(|err| {
                 panic!("Could not create test project: {:#?}", err);
             });
 
