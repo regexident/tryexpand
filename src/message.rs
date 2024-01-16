@@ -39,14 +39,14 @@ pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
             stdout,
             stderr,
         } => {
-            unexpected_success(source_path, source, stdout, stderr.as_deref());
+            unexpected_success(source_path, source, stdout.as_deref(), stderr.as_deref());
         }
         TestOutcome::UnexpectedFailure {
             source,
             stdout,
             stderr,
         } => {
-            unexpected_failure(source_path, source, stdout.as_deref(), stderr);
+            unexpected_failure(source_path, source, stdout.as_deref(), stderr.as_deref());
         }
     }
 }
@@ -159,20 +159,28 @@ pub(crate) fn snapshot_unexpected(path: &Path, snapshot_path: &Path, output: &st
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_success(path: &Path, source: &str, stdout: &str, stderr: Option<&str>) {
+pub(crate) fn unexpected_success(
+    path: &Path,
+    source: &str,
+    stdout: Option<&str>,
+    stderr: Option<&str>,
+) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Unexpected success!"));
     eprintln!();
+
     eprintln!("SOURCE:");
     eprintln!();
     print_lines(source, Paint::blue);
 
-    eprintln!();
-    eprintln!("EXPANDED:");
-    eprintln!();
-    print_lines(stdout, Paint::blue);
+    if let Some(stdout) = stdout {
+        eprintln!();
+        eprintln!("EXPANDED:");
+        eprintln!();
+        print_lines(stdout, Paint::red);
+    }
 
     if let Some(stderr) = stderr {
         eprintln!();
@@ -184,12 +192,18 @@ pub(crate) fn unexpected_success(path: &Path, source: &str, stdout: &str, stderr
     eprintln!("--------------------------");
 }
 
-pub(crate) fn unexpected_failure(path: &Path, source: &str, stdout: Option<&str>, stderr: &str) {
+pub(crate) fn unexpected_failure(
+    path: &Path,
+    source: &str,
+    stdout: Option<&str>,
+    stderr: Option<&str>,
+) {
     eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!("{}", Paint::red("Unexpected failure!"));
     eprintln!();
+
     eprintln!("SOURCE:");
     eprintln!();
     print_lines(source, Paint::blue);
@@ -201,10 +215,12 @@ pub(crate) fn unexpected_failure(path: &Path, source: &str, stdout: Option<&str>
         print_lines(stdout, Paint::blue);
     }
 
-    eprintln!();
-    eprintln!("ERROR:");
-    eprintln!();
-    print_lines(stderr, Paint::red);
+    if let Some(stderr) = stderr {
+        eprintln!();
+        eprintln!("ERROR:");
+        eprintln!();
+        print_lines(stderr, Paint::red);
+    }
 
     eprintln!("--------------------------");
 }

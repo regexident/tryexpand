@@ -51,10 +51,6 @@ pub(crate) enum Error {
     CargoPkgName,
     #[error("unrecognized environment variable value: '{key}={value}'")]
     UnrecognizedEnv { key: String, value: String },
-    #[error("unexpectedly encountered an empty stdout log for a successful test")]
-    UnexpectedEmptyStdOut,
-    #[error("unexpectedly encountered an empty stderr log for an unsuccessful test")]
-    UnexpectedEmptyStdErr,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
