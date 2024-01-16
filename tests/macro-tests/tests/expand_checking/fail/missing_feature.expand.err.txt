@@ -1,6 +1,0 @@
-error: cannot find macro `test_feature_vec` in this scope
- --> /tests/expand_checking/fail/missing_feature.rs:5:5
-  |
-5 |     test_feature_vec![];
-  |     ^^^^^^^^^^^^^^^^
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error
