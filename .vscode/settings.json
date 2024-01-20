@@ -1,0 +1,9 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "tests/other-tests/Cargo.toml",
+        "tests/macro-tests/Cargo.toml",
+        "tests/proc-macro-tests/Cargo.toml",
+        "tests/virtual-workspace-tests/Cargo.toml",
+        "tests/workspace-tests/Cargo.toml",
+    ]
+}
