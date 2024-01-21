@@ -1,8 +1,0 @@
-#[macro_use]
-extern crate proc_macro_tests;
-
-#[my_proc_macro_attribute]
-struct Test;
-
-#[cfg_attr(feature = "test-feature", my_feature_proc_macro_attribute)]
-struct TestFeature;

@@ -4,4 +4,3 @@ error[E0432]: unresolved import `non_existent_crate`
 1 | use non_existent_crate;
   |     ^^^^^^^^^^^^^^^^^^ no external crate `non_existent_crate`
 For more information about this error, try `rustc --explain E0432`.
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

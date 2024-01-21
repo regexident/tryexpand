@@ -1,0 +1,14 @@
+running 1 test
+F
+failures:
+
+---- failing_test stdout ----
+thread 'failing_test' panicked at /tests/and_run_tests/fail/failing_test.rs:5:5:
+Expected failure
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    failing_test
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in <TIME>

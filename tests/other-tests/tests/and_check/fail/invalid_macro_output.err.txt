@@ -1,0 +1,23 @@
+error[E0277]: cannot add `&str` to `{integer}`
+ --> /tests/and_check/fail/invalid_macro_output.rs:3:19
+  |
+3 |         let _ = 2 + "2";
+  |                   ^ no implementation for `{integer} + &str`
+...
+8 |     produce_invalid_code!();
+  |     ----------------------- in this macro invocation
+  |
+  = help: the trait `Add<&str>` is not implemented for `{integer}`
+  = help: the following other types implement trait `Add<Rhs>`:
+            <isize as Add>
+            <isize as Add<&isize>>
+            <i8 as Add>
+            <i8 as Add<&i8>>
+            <i16 as Add>
+            <i16 as Add<&i16>>
+            <i32 as Add>
+            <i32 as Add<&i32>>
+          and 48 others
+  = note: this error originates in the macro `produce_invalid_code` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.

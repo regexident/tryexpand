@@ -1,0 +1,5 @@
+error: cannot find derive macro `NonExistentMacro` in this scope
+ --> /tests/expand/fail/non_existent_derive_macro.rs:1:10
+  |
+1 | #[derive(NonExistentMacro)]
+  |          ^^^^^^^^^^^^^^^^

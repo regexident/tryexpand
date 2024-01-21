@@ -1,6 +1,0 @@
-error: expected one of `!` or `::`, found `<eof>`
- --> /tests/expand_opts/fail/garbage.rs:1:1
-  |
-1 | qwertyuiop
-  | ^^^^^^^^^^ expected one of `!` or `::`
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

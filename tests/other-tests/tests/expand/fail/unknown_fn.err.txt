@@ -4,4 +4,3 @@ error[E0425]: cannot find function `non_existent_fn` in this scope
 2 |     non_existent_fn();
   |     ^^^^^^^^^^^^^^^ not found in this scope
 For more information about this error, try `rustc --explain E0425`.
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

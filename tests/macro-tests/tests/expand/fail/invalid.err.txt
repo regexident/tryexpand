@@ -1,8 +1,0 @@
-error: no rules expected the token `let`
- --> /tests/expand/fail/invalid.rs:5:15
-  |
-5 |     test_vec![let x = 0;];
-  |               ^^^ no rules expected this token in macro call
-  |
-  = note: while trying to match end of macro
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

@@ -188,7 +188,7 @@ pub(crate) fn test(project: &Project, test: &Test, options: &Options) -> Result<
 pub(crate) fn run(project: &Project, test: &Test, options: &Options) -> Result<CargoOutput> {
     let mut cargo = cargo(project);
 
-    cargo.arg("run").arg("--bin").arg(&test.bin);
+    cargo.arg("run").arg("--bin").arg(&test.bin).arg("--quiet");
 
     // We don't want a backtrace to dilute our snapshots (or make them instable):
     cargo.env("RUST_BACKTRACE", "0");

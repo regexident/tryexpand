@@ -1,0 +1,5 @@
+error: expected one of `!` or `::`, found `ipsum`
+ --> /tests/expand/fail/invalid_syntax.rs:1:7
+  |
+1 | lorem ipsum dolor sit amet.
+  |       ^^^^^ expected one of `!` or `::`

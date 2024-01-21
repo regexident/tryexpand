@@ -1,8 +1,0 @@
-error: proc-macro derive panicked
- --> /tests/expand_opts/fail/derive.rs:4:10
-  |
-4 | #[derive(MyDerivePanics)]
-  |          ^^^^^^^^^^^^^^
-  |
-  = help: message: test
-error: could not compile `<CRATE>` (bin "<BIN>") due to previous error

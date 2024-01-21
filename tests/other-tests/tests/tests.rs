@@ -1,6 +1,10 @@
 const UNMATCHED_PATTERN: &str = "no/matches/for/this/path";
 
+const EMPTY_PATTERNS: [&str; 0] = [];
+
 mod expand {
+    use super::*;
+
     const PASS_PATTERN: &str = "tests/expand/pass/*.rs";
     const FAIL_PATTERN: &str = "tests/expand/fail/*.rs";
     const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
@@ -12,252 +16,228 @@ mod expand {
 
     #[test]
     #[should_panic(expected = "tests failed")]
-    pub fn fail() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
+    pub fn verify_pass() {
+        // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            [FAIL_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
+        tryexpand::expand([FAIL_PATTERN]).skip_overwrite();
     }
 
     #[test]
-    #[should_panic(expected = "no file patterns provided")]
-    pub fn no_paths_provided() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
-    pub fn no_files_found() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-}
-
-mod expand_checking {
-    const PASS_PATTERN: &str = "tests/expand/pass/*.rs";
-    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
-
-    // Checking for passing/failing tests requires macros,
-    // which this test project is not concerned with.
-    //
-    // This is because the observable behavior of `expand_checking()`
-    // will only differ from that of `expand()` if the error
-    // gets introduced during expansion.
-    // Otherwise the expansion phase would already detect the issue
-    // and the function would short-circuit.
-    //
-    // We thus perform these checks in the `macros-tests`
-    // and `proc-macro-tests` test projects (mostly the former).
-
-    #[test]
-    #[should_panic(expected = "no file patterns provided")]
-    pub fn no_paths_provided() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts_checking(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
-    pub fn no_files_found() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts_checking(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-}
-
-mod expand_fail {
-    const PASS_PATTERN: &str = "tests/expand/fail/*.rs";
-    const FAIL_PATTERN: &str = "tests/expand/pass/*.rs";
-    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
-
-    #[test]
-    pub fn pass() {
-        tryexpand::expand_fail([PASS_PATTERN]);
+    pub fn expect_fail() {
+        tryexpand::expand([FAIL_PATTERN]).expect_fail();
     }
 
     #[test]
     #[should_panic(expected = "tests failed")]
-    pub fn fail() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts_fail(
-            [FAIL_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
+        tryexpand::expand([PASS_PATTERN])
+            .skip_overwrite()
+            .expect_fail();
     }
 
     #[test]
     #[should_panic(expected = "no file patterns provided")]
     pub fn no_paths_provided() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
+        // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts_fail(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
+        tryexpand::expand(EMPTY_PATTERNS).skip_overwrite();
     }
 
     #[test]
     #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
     pub fn no_files_found() {
-        // We need to use the `_opts` variant here as we need to
-        // run the test with `options.skip_overwrite = true`
+        // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts_fail(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
+        tryexpand::expand([PASS_PATTERN, UNMATCHED_PATTERN]).skip_overwrite();
     }
 }
 
-mod expand_opts {
-    const PASS_PATTERN: &str = "tests/expand_opts/pass/*.rs";
-    const FAIL_PATTERN: &str = "tests/expand_opts/fail/*.rs";
-    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
+mod and_check {
+    const PASS_PATTERN: &str = "tests/and_check/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/and_check/fail/*.rs";
 
     #[test]
-    pub fn pass() {
-        tryexpand::expand_opts(
-            [PASS_PATTERN],
-            tryexpand::Options::default().args(["--features", "test-feature"]),
-        );
+    pub fn expect_pass() {
+        tryexpand::expand([PASS_PATTERN]).and_check();
     }
 
     #[test]
     #[should_panic(expected = "tests failed")]
-    pub fn fail() {
-        // We need to test with `options.skip_overwrite = true`
+    pub fn verify_expect_pass() {
+        // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            [FAIL_PATTERN],
-            tryexpand::Options::default()
-                .args(["--features", "placebo-test-feature"])
-                .skip_overwrite(),
-        );
+        tryexpand::expand([FAIL_PATTERN])
+            .and_check()
+            .skip_overwrite();
     }
 
     #[test]
-    #[should_panic(expected = "no file patterns provided")]
-    pub fn no_paths_provided() {
-        // We need to test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
-    pub fn no_files_found() {
-        // We need to test with `options.skip_overwrite = true`
-        // to avoid overwriting snapshots of `pass()`:
-        tryexpand::expand_opts(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-}
-
-mod expand_opts_checking {
-    const PASS_PATTERN: &str = "tests/expand_opts/pass/*.rs";
-    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
-
-    // Checking for passing/failing tests requires macros,
-    // which this test project is not concerned with.
-    //
-    // This is because the observable behavior of `expand_checking()`
-    // will only differ from that of `expand()` if the error
-    // gets introduced during expansion.
-    // Otherwise the expansion phase would already detect the issue
-    // and the function would short-circuit.
-    //
-    // We thus perform these checks in the `macros-tests`
-    // and `proc-macro-tests` test projects (mostly the former).
-
-    #[test]
-    #[should_panic(expected = "no file patterns provided")]
-    pub fn no_paths_provided() {
-        tryexpand::expand_opts_checking(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
-    pub fn no_files_found() {
-        tryexpand::expand_opts_checking(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
-    }
-}
-
-mod expand_opts_fail {
-    const PASS_PATTERN: &str = "tests/expand_opts/fail/*.rs";
-    const FAIL_PATTERN: &str = "tests/expand_opts/pass/*.rs";
-    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
-
-    #[test]
-    pub fn pass() {
-        tryexpand::expand_opts_fail(
-            [PASS_PATTERN],
-            tryexpand::Options::default().args(["--features", "placebo-test-feature"]),
-        );
+    pub fn expect_fail() {
+        tryexpand::expand([FAIL_PATTERN]).and_check().expect_fail();
     }
 
     #[test]
     #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([PASS_PATTERN])
+            .and_check()
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
+mod and_run {
+    const PASS_PATTERN: &str = "tests/and_run/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/and_run/fail/*.rs";
+
+    #[test]
+    pub fn expect_pass() {
+        tryexpand::expand([PASS_PATTERN]).and_run();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN]).and_run().skip_overwrite();
+    }
+
+    #[test]
+    pub fn expect_fail() {
+        tryexpand::expand([FAIL_PATTERN]).and_run().expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([PASS_PATTERN])
+            .and_run()
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
+mod and_run_tests {
+    const PASS_PATTERN: &str = "tests/and_run_tests/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/and_run_tests/fail/*.rs";
+
+    #[test]
+    pub fn expect_pass() {
+        tryexpand::expand([PASS_PATTERN]).and_run_tests();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN])
+            .and_run_tests()
+            .skip_overwrite();
+    }
+
+    #[test]
+    pub fn expect_fail() {
+        tryexpand::expand([FAIL_PATTERN])
+            .and_run_tests()
+            .expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([PASS_PATTERN])
+            .and_run_tests()
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
+mod args {
+    const PASS_PATTERN: &str = "tests/args/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/args/fail/*.rs";
+
+    #[test]
+    pub fn pass() {
+        tryexpand::expand([PASS_PATTERN]).args(["--features", "test-feature"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN])
+            .args(["--features", "test-feature"])
+            .skip_overwrite();
+    }
+
+    #[test]
     pub fn fail() {
-        tryexpand::expand_opts_fail(
-            [FAIL_PATTERN],
-            tryexpand::Options::default()
-                .args(["--features", "placebo-test-feature"])
-                .skip_overwrite(),
-        );
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN])
+            .args(["--features", "placebo-feature"])
+            .expect_fail();
     }
 
     #[test]
-    #[should_panic(expected = "no file patterns provided")]
-    pub fn no_paths_provided() {
-        tryexpand::expand_opts_fail(
-            Vec::<&str>::new(),
-            tryexpand::Options::default().skip_overwrite(),
-        );
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([PASS_PATTERN])
+            .args(["--features", "placebo-feature"])
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
+mod envs {
+    const PASS_PATTERN: &str = "tests/envs/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/envs/fail/*.rs";
+
+    #[test]
+    pub fn pass() {
+        tryexpand::expand([PASS_PATTERN]).envs([("TEST_ENV", "test-env-var-value")]);
     }
 
     #[test]
-    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
-    pub fn no_files_found() {
-        tryexpand::expand_opts_fail(
-            [PASS_PATTERN, UNMATCHED_PATTERN],
-            tryexpand::Options::default().skip_overwrite(),
-        );
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN])
+            .envs([("TEST_ENV", "test-env-var-value")])
+            .skip_overwrite();
+    }
+
+    #[test]
+    pub fn fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([FAIL_PATTERN])
+            .envs([("PLACEBO_ENV", "placebo-env-var-value")])
+            .expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::expand([PASS_PATTERN])
+            .envs([("PLACEBO_ENV", "placebo-env-var-value")])
+            .skip_overwrite()
+            .expect_fail();
     }
 }
