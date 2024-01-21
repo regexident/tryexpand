@@ -1,0 +1,7 @@
+error: env var required
+ --> /tests/envs/fail/env_var.rs:1:28
+  |
+1 | const TEST_ENV_VAR: &str = env!("TEST_ENV", "env var required");
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `env` (in Nightly builds, run with -Z macro-backtrace for more info)

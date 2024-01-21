@@ -1,5 +1,5 @@
 error: cannot find macro `non_existent_macro` in this scope
- --> /tests/expand/fail/unknown_macro.rs:2:5
+ --> /tests/expand/fail/non_existent_macro.rs:2:5
   |
 2 |     non_existent_macro!();
   |     ^^^^^^^^^^^^^^^^^^

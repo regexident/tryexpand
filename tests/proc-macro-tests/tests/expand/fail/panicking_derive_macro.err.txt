@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> /tests/expand/fail/panicking_derive_macro.rs:4:10
+  |
+4 | #[derive(MyDerivePanics)]
+  |          ^^^^^^^^^^^^^^
+  |
+  = help: message: test
