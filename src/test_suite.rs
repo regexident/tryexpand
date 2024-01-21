@@ -114,7 +114,10 @@ impl TestSuite {
                 source,
             })?;
 
-        let crate_name = env::var("CARGO_PKG_NAME").map_err(|_| Error::CargoPkgName)?;
+        let crate_name = env::var("CARGO_PKG_NAME")
+            .ok()
+            .or_else(|| metadata.root_package().map(|pkg| pkg.name.clone()))
+            .ok_or(Error::CargoPkgName)?;
 
         let package = metadata
             .packages
