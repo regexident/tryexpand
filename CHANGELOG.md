@@ -20,7 +20,16 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Added support for running test files (i.e. `cargo run`).
+- Added support for testing test files (i.e. `cargo test`).
+- Added `struct TestSuite`
+  - with `.arg()`/`.args()` builder-style methods for providing args.
+  - with `.env()`/`.envs()` builder-style methods for providing envs.
+  - with `.skip_overwrite()` builder-style method for suppressing snapshot writing.
+  - with `.and_check()` builder-style method for running `cargo check` for successful expansions.
+  - with `.and_run_tests()` builder-style method for running `cargo test` for successful expansions.
+  - with `.and_run()` builder-style method for running `cargo run` for successful expansions.
+  - with `.expect_pass()`/`.expect_fail()` builder-style methods for asserting passes/failures.
 
 ### Changed
 
@@ -32,7 +41,12 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Removed
 
-- n/a
+- `fn expand_fail()`
+- `fn expand_opts()`
+- `fn expand_opts_fail()`
+- `fn expand_checking_fail()`
+- `fn expand_opts_checking()`
+- `fn expand_opts_checking_fail()`
 
 ### Fixed
 
@@ -54,7 +68,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
+- Added support for checking (i.e. `cargo check`) successful expansions via `expand_checking()` and `expand_opts_checking()`.
 - Added field `skip_overwrite: bool` to `Options` for selectively suppressing snapshots.
 
 ### Changed
