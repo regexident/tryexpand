@@ -13,45 +13,122 @@ use crate::{
     error::{Error, Result},
     message,
     project::Project,
-    test::{Test, TestBehavior, TestPlan, TestStatus},
+    test::{PostExpandAction, Test, TestBehavior, TestPlan, TestStatus},
     Options, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
-#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub(crate) fn try_run_tests<I, P>(
-    location: &std::panic::Location,
-    patterns: I,
-    options: Options,
-    plan: TestPlan,
-) -> Result<()>
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    let test_suite = TestSuite::new(patterns, plan, options, location)?;
+pub struct TestSuitePass {
+    #[allow(dead_code)]
+    test_suite: TestSuite,
+}
 
-    test_suite.try_run()?;
-
-    Ok(())
+pub struct TestSuiteFail {
+    #[allow(dead_code)]
+    test_suite: TestSuite,
 }
 
 #[derive(Debug)]
-pub(crate) struct TestSuite {
-    pub project: Project,
-    pub plan: TestPlan,
-    pub tests: Vec<Test>,
-    pub options: Options,
-    pub call_site: String,
+pub struct TestSuite {
+    pub(crate) project: Project,
+    pub(crate) plan: TestPlan,
+    pub(crate) tests: Vec<Test>,
+    pub(crate) options: Options,
+    pub(crate) call_site: String,
 }
 
 impl TestSuite {
-    #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-    pub(crate) fn new<I, P>(
-        patterns: I,
-        plan: TestPlan,
-        options: Options,
-        location: &std::panic::Location,
-    ) -> Result<Self>
+    pub fn arg<T>(self, arg: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        self.args([arg])
+    }
+
+    pub fn args<T, I>(mut self, args: I) -> Self
+    where
+        T: AsRef<str>,
+        I: IntoIterator<Item = T>,
+    {
+        self.options
+            .args
+            .extend(args.into_iter().map(|str| str.as_ref().to_owned()));
+        self
+    }
+
+    pub fn env<K, V>(self, key: K, value: V) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.envs([(key, value)])
+    }
+
+    pub fn envs<K, V, I>(mut self, envs: I) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        for (key, value) in envs.into_iter() {
+            let key = key.as_ref().to_owned();
+            let value = value.as_ref().to_owned();
+            self.options.envs.insert(key, value);
+        }
+        self
+    }
+
+    pub fn skip_overwrite(mut self) -> Self {
+        self.options.skip_overwrite = true;
+        self
+    }
+
+    pub fn and_check(self) -> Self {
+        self.and_post_check(PostExpandAction::Check)
+    }
+
+    pub fn and_run_tests(self) -> Self {
+        self.and_post_check(PostExpandAction::Test)
+    }
+
+    pub fn and_run(self) -> Self {
+        self.and_post_check(PostExpandAction::Run)
+    }
+
+    fn and_post_check(mut self, action: PostExpandAction) -> Self {
+        if let Some(existing_action) = &self.plan.post_expand {
+            let cmd = match existing_action {
+                PostExpandAction::Check => "check",
+                PostExpandAction::Test => "test",
+                PostExpandAction::Run => "run",
+            };
+            panic!("Post-expand action already set to `cargo {cmd}`!");
+        }
+
+        self.plan.post_expand = Some(action);
+        self
+    }
+
+    pub fn expect_pass(self) -> TestSuitePass {
+        TestSuitePass {
+            test_suite: self.expect_result(TestStatus::Success),
+        }
+    }
+
+    pub fn expect_fail(self) -> TestSuiteFail {
+        TestSuiteFail {
+            test_suite: self.expect_result(TestStatus::Failure),
+        }
+    }
+
+    fn expect_result(mut self, expectation: TestStatus) -> Self {
+        self.plan.expectation = expectation;
+        self
+    }
+}
+
+impl TestSuite {
+    #[track_caller]
+    pub(crate) fn new<I, P>(patterns: I, location: &std::panic::Location) -> Result<Self>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -136,6 +213,14 @@ impl TestSuite {
                 panic!("Could not create test project: {:#?}", err);
             });
 
+        let plan = TestPlan {
+            post_expand: None,
+            behavior: test_behavior_from_env().unwrap(),
+            expectation: TestStatus::Success,
+        };
+
+        let options = Options::default();
+
         let call_site = format!(
             "{file}:{line}:{column}",
             file = location.file(),
@@ -153,7 +238,7 @@ impl TestSuite {
     }
 
     #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-    pub(crate) fn try_run(self) -> Result<()> {
+    pub(crate) fn try_run(&mut self) -> Result<()> {
         let TestSuite {
             project,
             plan,
@@ -175,12 +260,12 @@ impl TestSuite {
         let max_errors = 2;
         let mut command_errors = 0;
 
-        for mut test in tests {
+        for test in tests {
             let test_path = test.path.to_owned();
-            let result = test.run(&plan, &project, &options, &mut |outcome| {
+            let result = test.run(plan, project, options, &mut |outcome| {
                 message::report_outcome(&test_path, &outcome);
 
-                match outcome.as_result() {
+                match outcome.as_status() {
                     TestStatus::Success => {}
                     TestStatus::Failure => {
                         failures.insert(test_path.clone());
@@ -223,10 +308,6 @@ impl TestSuite {
             panic!("{}", message);
         }
 
-        // Ensure the project (and with it its corresponding on-dist project)
-        // doesn't get dropped prematurely, unintentionally:
-        drop(project);
-
         Ok(())
     }
 
@@ -255,6 +336,17 @@ impl TestSuite {
         tests.sort_by_cached_key(|test| test.path.clone());
 
         tests
+    }
+}
+
+impl Drop for TestSuite {
+    fn drop(&mut self) {
+        match self.try_run() {
+            Ok(()) => {}
+            Err(err) => {
+                panic!("Test suite failed with error: {err:?}");
+            }
+        }
     }
 }
 
