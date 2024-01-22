@@ -33,7 +33,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Changed visibility of `crate::Options` to `pub(crate)`
 
 ### Deprecated
 

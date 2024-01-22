@@ -12,9 +12,10 @@ use std::{
 use crate::{
     error::{Error, Result},
     message,
+    options::Options,
     project::Project,
     test::{PostExpandAction, Test, TestBehavior, TestPlan, TestStatus},
-    Options, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
+    TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
 pub struct TestSuitePass {

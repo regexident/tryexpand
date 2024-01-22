@@ -23,11 +23,47 @@ pub(crate) const OUT_RS_FILE_SUFFIX: &str = "out.rs";
 pub(crate) const OUT_TXT_FILE_SUFFIX: &str = "out.txt";
 pub(crate) const ERR_TXT_FILE_SUFFIX: &str = "err.txt";
 
-pub use self::options::Options;
-
 use crate::test_suite::TestSuite;
 
-/// Attempts to expand macros in files that match glob pattern, expecting a pass.
+/// Attempts to expand macros in files that match the provided paths/glob patterns.
+///
+/// # Examples
+///
+/// Simple:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::expand(
+///         ["tests/expand/pass/*.rs"]
+///     ).expect_pass();
+/// }
+///
+/// #[test]
+/// pub fn fail() {
+///     tryexpand::expand(
+///         ["tests/expand/fail/*.rs"]
+///     ).expect_fail();
+/// }
+/// ```
+///
+/// Advanced:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::expand(
+///         [
+///             "tests/expand/foo/pass/*.rs",
+///             "tests/expand/bar/pass/*.rs"
+///         ]
+///     )
+///     .args(["--features", "test-feature"])
+///     .envs([("MY_ENV", "my env var value")])
+///     .and_check() // type-check the expanded code
+///     .expect_pass();
+/// }
+/// ```
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
 pub fn expand<I, P>(patterns: I) -> TestSuite
 where

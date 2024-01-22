@@ -6,8 +6,9 @@ use std::{
 use crate::{
     cargo::{self, CargoOutput},
     error::Result,
+    options::Options,
     project::Project,
-    utils, Options,
+    utils,
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

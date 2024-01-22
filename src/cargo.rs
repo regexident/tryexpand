@@ -5,9 +5,9 @@ use serde::Serialize;
 use crate::{
     error::{Error, Result},
     normalization,
+    options::Options,
     project::Project,
     test::{Test, TestStatus},
-    Options,
 };
 
 const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
