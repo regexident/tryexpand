@@ -45,8 +45,8 @@ jobs:
       - run: cargo test --release
       - run: cargo install cargo-expand
       - run: cargo test
-      - run: cargo test --manifest-path tests/macro-tests/Cargo.toml -- --test-threads=1
       - run: cargo test --manifest-path tests/other-tests/Cargo.toml -- --test-threads=1
+      - run: cargo test --manifest-path tests/macro-tests/Cargo.toml -- --test-threads=1
       - run: cargo test --manifest-path tests/proc-macro-tests/Cargo.toml -- --test-threads=1
       - run: cargo test --manifest-path tests/virtual-workspace-tests/Cargo.toml --workspace -- --test-threads=1
       - run: cargo test --manifest-path tests/virtual-workspace-tests/excluded-tests/Cargo.toml -- --test-threads=1
