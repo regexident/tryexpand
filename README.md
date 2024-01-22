@@ -29,62 +29,107 @@ cargo install --dev tryexpand
 
 ### Writing tests
 
-Then under your crate's `tests/` directory, create `tests.rs` file containing the following code:
+Then under your crate's `tests/` directory, create `tests.rs` file containing calls to `tryexpand::expand()` and populate the `tests/expand/pass/`, `tests/expand/checked_pass/` and `tests/expand/fail/` directories with corresponding Rust source files under test.
+
+#### Pass
+
+The base of each `tryexpand` test suite is the `tryexpand::expand()` function, which you pass a list of file paths (or glob patterns) to:
 
 ```rust
-// Use `expand()` or `expand_opts()` to assert
-// successful expansion (ignoring type-checking of the expansion):
 #[test]
-pub fn expand_pass() {
+pub fn pass() {
     tryexpand::expand(
-        // One or more glob patterns:
         ["tests/expand/pass/*.rs"]
-    );
-    // or if you need to pass additional CLI arguments:
-    tryexpand::expand_opts(
-        // One or more glob patterns:
-        ["tests/expand/pass/*.rs"],
-        // Arguments to pass to `cargo expand` command:
-        ["--features", "test-feature"]
-    );
-}
+    ).expect_pass();
 
-// Use `expand_checked()` or `expand_opts_checked()` to
-// assert successful expansion and(!) type-checking of the expansion:
-#[test]
-pub fn expand_checked_pass() {
-    tryexpand::expand_checked(
-        // One or more glob patterns:
-        ["tests/expand/checked_pass/*.rs"]
-    );
-    // or if you need to pass additional CLI arguments:
-    tryexpand::expand_opts_checked(
-        // One or more glob patterns:
-        ["tests/expand/checked_pass/*.rs"],
-        // Arguments to pass to `cargo expand` command:
-        ["--features", "test-feature"]
-    );
-}
+    // or its short-hand (by default `.expect_pass()` is implied):
 
-// Use `expand_fail()` or `expand_opts_fail()` to assert
-// unsuccessful expansion (ignoring type-checking of the expansion):
-#[test]
-pub fn expand_fail() {
-    tryexpand::expand_fail(
-        // One or more glob patterns:
-        ["tests/expand/fail/*.rs"]
-    );
-    // or if you need to pass additional CLI arguments:
-    tryexpand::expand_opts_fail(
-        // One or more glob patterns:
-        ["tests/expand/fail/*.rs"],
-        // Arguments to pass to `cargo expand` command:
-        ["--features", "test-feature"]
+    tryexpand::expand(
+        ["tests/expand/pass/*.rs"]
     );
 }
 ```
 
-Next populate the `tests/expand/pass/`, `tests/expand/checked_pass/` and `tests/expand/fail/` directories with Rust source files.
+By default `tryexpand::expand()` assert matched test files to expand successfully.
+
+#### Fail
+
+If instead you want to write tests for macro expansion diagnostics, then will have to add a call to `.expect_fail()`:
+
+```rust
+#[test]
+pub fn fail() {
+    tryexpand::expand(
+        ["tests/expand/fail/*.rs"]
+    ).expect_fail();
+}
+```
+
+#### CLI arguments
+
+Additionally you can specify arguments to pass to `cargo expand`:
+
+```rust
+#[test]
+tryexpand::expand(
+    // ...
+)
+// ...
+.args(["--features", "test-feature"])
+.expect_pass();
+```
+
+#### CLI env vars
+
+as well as environment variables to set for `cargo expand`:
+
+```rust
+tryexpand::expand(
+    // ...
+)
+// ...
+.envs([("MY_ENV", "my env var value")])
+.expect_pass();
+```
+
+#### cargo check
+
+You can also make `tryexpand` type-check the expanded code for you (i.e. `cargo check`):
+
+```rust
+tryexpand::expand(
+    // ...
+)
+// ...
+.and_check()
+.expect_pass();
+```
+
+#### cargo run
+
+Or you can make `tryexpand` run the expanded code for you (i.e. `cargo run`):
+
+```rust
+tryexpand::expand(
+    // ...
+)
+// ...
+.and_run()
+.expect_pass();
+```
+
+#### cargo test
+
+Or you can make `tryexpand` run the expanded code's included unit tests (if there are any) for you (i.e. `cargo test`):
+
+```rust
+tryexpand::expand(
+    // ...
+)
+// ...
+.and_run_tests()
+.expect_pass();
+```
 
 ### Running tests
 
@@ -106,17 +151,11 @@ For debugging purposes you may want to see the output for all tests, not just th
 cargo test -- --no-capture
 ```
 
-Each `tryexpand` test will invoke the `cargo expand` command on each of the source files that matches the glob pattern and will compare the expansion result with the corresponding `*.out.rs` file.
+Each `tryexpand` test will invoke the `cargo expand` command (as well as any of the optional follow-up commands: `cargo check`, `cargo run`, `cargo test`) on each of the source files that matches the glob pattern and will compare the expansion result with the corresponding `*.out.rs`, `*.out.txt` or `*.err.txt` snapshot files.
 
-If the environment variable `TRYEXPAND=overwrite` is provided (e.g. `$ TRYEXPAND=overwrite cargo test`), then `*.out.rs` snapshot files will
-be created, or overwritten, if one already exists. Snapshot files should get checked into version control.
+If the environment variable `TRYEXPAND=overwrite` is provided (e.g. `$ TRYEXPAND=overwrite cargo test`), then snapshot files will be created, or overwritten, if one already exists. Snapshot files should get checked into version control.
 
-Hand-writing `*.out.rs` files is not recommended.
-
-Possible test outcomes are:
-
-- **Pass**: expansion succeeded and the result is the same as in the `.out.rs` file.
-- **Failure**: expansion failed, is missing or was different from the existing `.out.rs` file content.
+Hand-writing snapshot files is not recommended.
 
 ### Performance considerations
 
