@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Fixed bug where unexpected failure was getting reported, but no actual error included in the log.
 
 ### Performance
 
