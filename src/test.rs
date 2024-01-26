@@ -97,30 +97,26 @@ impl TestReport {
     }
 
     pub fn output(&self) -> Option<String> {
-        if self.expand.evaluation == TestStatus::Failure {
-            return None;
+        if let Some(output) = self.post_expand_output() {
+            return output.stdout.clone();
         }
 
-        self.post_expand_output()
-            .and_then(|output| output.stdout.clone())
+        self.expand.stdout.clone()
     }
 
     pub fn error(&self) -> Option<String> {
-        if self.expand.evaluation == TestStatus::Failure {
-            return None;
+        if let Some(output) = self.post_expand_output() {
+            return output.stderr.clone();
         }
 
-        self.post_expand_output()
-            .and_then(|output| output.stderr.clone())
+        self.expand.stderr.clone()
     }
 
     pub fn evaluation(&self) -> TestStatus {
-        let mut evaluation: TestStatus = TestStatus::Success;
+        let mut evaluation: TestStatus = self.expand.evaluation;
 
-        evaluation &= self.expand.evaluation;
-
-        if let Some(output) = self.post_expand_output() {
-            evaluation &= output.evaluation;
+        if let Some(post_expand) = &self.post_expand {
+            evaluation &= post_expand.evaluation();
         }
 
         evaluation
@@ -140,6 +136,14 @@ impl PostExpandOutput {
             Self::Check(output) => output,
             Self::Test(output) => output,
             Self::Run(output) => output,
+        }
+    }
+
+    fn evaluation(&self) -> TestStatus {
+        match self {
+            Self::Check(output) => output.evaluation,
+            Self::Test(output) => output.evaluation,
+            Self::Run(output) => output.evaluation,
         }
     }
 }
@@ -249,7 +253,7 @@ impl Test {
 
         let post_expand = if expand.evaluation == TestStatus::Success {
             if let Some(action) = post_expand_action {
-                Some(match action {
+                let post_expand = match action {
                     PostExpandAction::Check => {
                         PostExpandOutput::Check(cargo::check(project, self, options)?)
                     }
@@ -259,7 +263,8 @@ impl Test {
                     PostExpandAction::Run => {
                         PostExpandOutput::Run(cargo::run(project, self, options)?)
                     }
-                })
+                };
+                Some(post_expand)
             } else {
                 None
             }
