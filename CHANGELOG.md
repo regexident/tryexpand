@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Restricted logging of snapshot blocks to 100 lines per block.
+- n/a
 
 ### Deprecated
 
@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- Fixed bug where unexpected failure was getting reported, but no actual error included in the log.
+- n/a
 
 ### Performance
 
@@ -49,6 +49,16 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.7.1] - 2024-01-26
+
+### Changed
+
+- Restricted logging of snapshot blocks to 100 lines per block.
+
+### Fixed
+
+- Fixed bug where unexpected failure was getting reported, but no actual error included in the log.
 
 ## [0.7.0] - 2024-01-22
 
