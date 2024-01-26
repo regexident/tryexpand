@@ -92,26 +92,6 @@ impl TestReport {
             .map(|post_expand| post_expand.output())
     }
 
-    pub fn expanded(&self) -> Option<String> {
-        self.expand.stdout.clone()
-    }
-
-    pub fn output(&self) -> Option<String> {
-        if let Some(output) = self.post_expand_output() {
-            return output.stdout.clone();
-        }
-
-        self.expand.stdout.clone()
-    }
-
-    pub fn error(&self) -> Option<String> {
-        if let Some(output) = self.post_expand_output() {
-            return output.stderr.clone();
-        }
-
-        self.expand.stderr.clone()
-    }
-
     pub fn evaluation(&self) -> TestStatus {
         let mut evaluation: TestStatus = self.expand.evaluation;
 
@@ -346,25 +326,37 @@ impl Test {
         report: &TestReport,
         observe: &mut dyn FnMut(TestOutcome),
     ) {
+        let source = source.to_owned();
+        let expanded = report.expand.stdout.clone();
+        let (output, error) = match report.post_expand_output() {
+            Some(post_expand) => (post_expand.stdout.clone(), post_expand.stderr.clone()),
+            None => (None, report.expand.stderr.clone()),
+        };
         observe(TestOutcome::UnexpectedSuccess {
-            source: source.to_owned(),
-            expanded: report.expanded().clone(),
-            output: report.output().clone(),
-            error: report.error().clone(),
+            source,
+            expanded,
+            output,
+            error,
         });
     }
 
     fn report_unexpected_failure(
         &mut self,
         source: &str,
-        output: &TestReport,
+        report: &TestReport,
         observe: &mut dyn FnMut(TestOutcome),
     ) {
+        let source = source.to_owned();
+        let expanded = report.expand.stdout.clone();
+        let (output, error) = match report.post_expand_output() {
+            Some(post_expand) => (post_expand.stdout.clone(), post_expand.stderr.clone()),
+            None => (None, report.expand.stderr.clone()),
+        };
         observe(TestOutcome::UnexpectedFailure {
-            source: source.to_owned(),
-            expanded: output.expanded().clone(),
-            output: output.output().clone(),
-            error: output.error().clone(),
+            source,
+            expanded,
+            output,
+            error,
         });
     }
 
