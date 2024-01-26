@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Fixed redundant logging of expanded code as both, "EXPANDED:" and "OUTPUT:".
 
 ### Performance
 
