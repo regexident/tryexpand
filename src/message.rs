@@ -4,6 +4,8 @@ use yansi::Paint;
 
 use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
 
+const MAX_BLOCK_LINES: usize = 100;
+
 pub(crate) fn report_outcome(source_path: &Path, outcome: &TestOutcome) {
     match outcome {
         TestOutcome::SnapshotMatch { path } => {
@@ -244,7 +246,7 @@ fn print_source(source: &str) {
     eprintln!();
     eprintln!("SOURCE:");
     eprintln!();
-    print_lines(source, Paint::blue);
+    print_block(source, Paint::blue);
 }
 
 fn print_snapshot_diff(expected: &str, actual: &str) {
@@ -258,35 +260,35 @@ fn print_expanded_snapshot(expanded: &str) {
     eprintln!();
     eprintln!("EXPANDED:");
     eprintln!();
-    print_lines(expanded, Paint::blue);
+    print_block(expanded, Paint::blue);
 }
 
 fn print_output_snapshot(output: &str) {
     eprintln!();
     eprintln!("OUTPUT:");
     eprintln!();
-    print_lines(output, Paint::blue);
+    print_block(output, Paint::blue);
 }
 
 fn print_error_snapshot(error: &str) {
     eprintln!();
     eprintln!("ERROR:");
     eprintln!();
-    print_lines(error, Paint::red);
+    print_block(error, Paint::red);
 }
 
 fn print_valid_snapshot(snapshot: &str) {
     eprintln!();
     eprintln!("SNAPSHOT:");
     eprintln!();
-    print_lines(snapshot, Paint::blue);
+    print_block(snapshot, Paint::blue);
 }
 
 fn print_invalid_snapshot(snapshot: &str) {
     eprintln!();
     eprintln!("SNAPSHOT:");
     eprintln!();
-    print_lines(snapshot, Paint::red);
+    print_block(snapshot, Paint::red);
 }
 
 fn print_install_cargo_expand_hint() {
@@ -327,64 +329,120 @@ fn print_remove_hint(path: &Path) {
     );
 }
 
-fn print_lines<F>(string: &str, f: F)
+fn print_block<F>(block: &str, f: F)
 where
     F: Fn(String) -> Paint<String>,
 {
-    let lines: Vec<&str> = string.lines().collect();
-    for line in lines {
+    let lines: Vec<&str> = block.lines().collect();
+    print_lines(&lines, f)
+}
+
+fn print_lines<F>(lines: &[&str], f: F)
+where
+    F: Fn(String) -> Paint<String>,
+{
+    print_lines_bounded(lines, MAX_BLOCK_LINES, f)
+}
+
+#[allow(dead_code)]
+fn print_block_bounded<F>(block: &str, max_lines: usize, f: F)
+where
+    F: Fn(String) -> Paint<String>,
+{
+    let lines: Vec<&str> = block.lines().collect();
+    print_lines_bounded(&lines, max_lines, f)
+}
+
+fn print_lines_bounded<F>(lines: &[&str], max_lines: usize, f: F)
+where
+    F: Fn(String) -> Paint<String>,
+{
+    let (prefix, infix_len, suffix) = lines_bounded(lines, max_lines);
+    for &line in prefix {
         eprintln!("{}", f(line.to_owned()));
+    }
+    if let Some(suffix) = suffix {
+        eprintln!("... {infix_len} LINES OMITTED IN LOG ...");
+        for &line in suffix {
+            eprintln!("{}", f(line.to_owned()));
+        }
     }
 }
 
 fn print_diff(before: &str, after: &str, num_context_lines: usize) {
+    print_diff_bounded(before, after, MAX_BLOCK_LINES, num_context_lines)
+}
+
+fn print_diff_bounded(before: &str, after: &str, max_lines: usize, num_context_lines: usize) {
     let diff_lines = diff::lines(before, after);
-    for diff_run in DiffRunsIterator::from(diff_lines.into_iter()) {
+    let lines_len = diff_lines.len();
+
+    if lines_len == 0 {
+        return;
+    }
+
+    let diff_runs: Vec<_> = DiffRunsIterator::from(diff_lines.into_iter()).collect();
+    let diff_runs_len = diff_runs.len();
+
+    let max_lines_per_run = (max_lines / diff_runs_len).max(2 * num_context_lines);
+
+    for diff_run in diff_runs {
         match diff_run {
             diff::Result::Left(lines) => {
-                for line in lines {
+                let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
+                for &line in prefix {
                     eprintln!("{}", Paint::red(format!("- {line}")));
+                }
+                if let Some(suffix) = suffix {
+                    eprintln!("- ... {infix_len} LINES OMITTED IN LOG ...");
+                    for &line in suffix {
+                        eprintln!("{}", Paint::red(format!("- {line}")));
+                    }
                 }
             }
             diff::Result::Both(lines, _) => {
-                let lines = trim_infix(&lines, num_context_lines, num_context_lines);
-
-                for line in lines {
+                let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
+                for &line in prefix {
                     eprintln!("{}", Paint::blue(format!("  {line}")));
+                }
+                if let Some(suffix) = suffix {
+                    eprintln!("  ... {infix_len} LINES OMITTED IN LOG ...");
+                    for &line in suffix {
+                        eprintln!("{}", Paint::blue(format!("  {line}")));
+                    }
                 }
             }
             diff::Result::Right(lines) => {
-                for line in lines {
+                let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
+                for &line in prefix {
                     eprintln!("{}", Paint::green(format!("+ {line}")));
+                }
+                if let Some(suffix) = suffix {
+                    eprintln!("+ ... {infix_len} LINES OMITTED IN LOG ...");
+                    for &line in suffix {
+                        eprintln!("{}", Paint::green(format!("+ {line}")));
+                    }
                 }
             }
         }
     }
 }
 
-fn trim_infix<'a>(
+fn lines_bounded<'a>(
     lines: &'a [&'a str],
-    max_prefix_len: usize,
-    max_suffix_len: usize,
-) -> Vec<&'a str> {
-    let mut trimmed: Vec<&str> = vec![];
-    let num_lens = lines.len();
-
-    for (index, &line) in lines.iter().enumerate() {
-        if index < max_prefix_len {
-            trimmed.push(line);
-        } else if index == max_prefix_len {
-            if num_lens > (max_prefix_len + max_suffix_len) {
-                trimmed.push("...");
-            } else {
-                trimmed.push(line);
-            }
-        } else if (num_lens - index) <= max_suffix_len {
-            trimmed.push(line);
-        }
+    max_lines: usize,
+) -> (&'a [&'a str], usize, Option<&'a [&'a str]>) {
+    if (lines.len() <= max_lines) || (max_lines == usize::MAX) {
+        return (lines, 0, None);
     }
 
-    trimmed
+    let split_index = (max_lines + 1) / 2;
+    let infix_len = lines.len() - max_lines;
+
+    let prefix = &lines[..split_index];
+    let suffix = &lines[(split_index + infix_len)..];
+
+    (prefix, infix_len, Some(suffix))
 }
 
 struct DiffRunsIterator<I>
