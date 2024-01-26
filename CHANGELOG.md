@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Restricted logging of snapshot blocks to 100 lines per block.
 
 ### Deprecated
 
