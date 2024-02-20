@@ -24,12 +24,12 @@ version = "0.7.1"
 base62 = "2.0.2"
 basic-toml = "0.1"
 cargo_metadata = "0.18.1"
-cargo_toml = "0.18.0"
+cargo_toml = "0.19.1"
 diff = "0.1"
 glob = "0.3"
 prettyplease = "0.2"
 regex = "1.10.3"
-serde = { version = "1.0.195", features = ["derive"] }
+serde = { version = "1.0.197", features = ["derive"] }
 syn = { version = "2", features = ["full"] }
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 yansi = "0.5.1"
