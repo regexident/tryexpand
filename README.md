@@ -167,6 +167,15 @@ Usage of wildcards for multiple files will group them under a single temporary c
 
 See [tests/macro-tests](tests/macro-tests) and [tests/proc-macro-tests](tests/proc-macro-tests) as a reference.
 
+### Reliability considerations
+
+Since each rustc/cargo release might make changes to the emitted diagnostics
+it is recommended to run `tryexpand` tests using a [pinned](https://rust-lang.github.io/rustup/overrides.html) [toolchain](https://rust-lang.github.io/rustup/concepts/toolchains.html), e.g.:
+
+```terminal
+cargo +1.76.0 test <OPTIONS>
+```
+
 ### Debugging
 
 For each `expand()`-like method call within your tests a temporary and uniquely named Rust project will get generated within `$CARGO_TARGET_DIR/target/tests/`.
