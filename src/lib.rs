@@ -1,5 +1,7 @@
 //! Test harness for macro expansion.
 
+#![allow(clippy::test_attr_in_doctest)]
+
 use std::{panic::Location, path::Path};
 
 mod cargo;
