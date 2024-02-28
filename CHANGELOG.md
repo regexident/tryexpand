@@ -24,11 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Updated dependencies:
-  - `cargo_toml` from `0.18.0` to `0.19.1`
-  - `serde` from `1.0.195` to `1.0.197`
-  - `thiserror` from `1.0.56` to `1.0.57`
-- Bumped MSRV from `0.70.0` to `0.74.0`.
+- n/a
 
 ### Deprecated
 
@@ -40,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- Fixed redundant logging of expanded code as both, "EXPANDED:" and "OUTPUT:".
+- n/a
 
 ### Performance
 
@@ -53,6 +49,20 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.8.0] - 2024-02-28
+
+### Changed
+
+- Updated dependencies:
+  - `cargo_toml` from `0.18.0` to `0.19.1`
+  - `serde` from `1.0.195` to `1.0.197`
+  - `thiserror` from `1.0.56` to `1.0.57`
+- Bumped MSRV from `0.70.0` to `0.74.0`.
+
+### Fixed
+
+- Fixed redundant logging of expanded code as both, "EXPANDED:" and "OUTPUT:".
 
 ## [0.7.1] - 2024-01-26
 
