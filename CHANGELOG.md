@@ -24,6 +24,10 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
+- Updated dependencies:
+  - `cargo_toml` from `0.18.0` to `0.19.1`
+  - `serde` from `1.0.195` to `1.0.197`
+  - `thiserror` from `1.0.56` to `1.0.57`
 - Bumped MSRV from `0.70.0` to `0.74.0`.
 
 ### Deprecated
