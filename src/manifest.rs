@@ -140,6 +140,7 @@ where
         metadata: None,
         resolver: None,
         dependencies: BTreeMap::default(),
+        lints: None,
     };
 
     #[allow(deprecated)]
@@ -160,6 +161,7 @@ where
         bench: vec![],
         test: vec![],
         example: vec![],
+        lints: None,
     };
 
     Ok(manifest)
