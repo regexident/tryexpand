@@ -32,4 +32,4 @@ regex = "1.10.3"
 serde = { version = "1.0.197", features = ["derive"] }
 syn = { version = "2", features = ["full"] }
 thiserror = "1.0.57"
-yansi = "0.5.1"
+yansi = "1.0.1"
