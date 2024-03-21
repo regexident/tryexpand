@@ -470,9 +470,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         use diff::Result;
 
-        let Some(current) = self.current.take() else {
-            return None;
-        };
+        let current = self.current.take()?;
 
         let mut result = match current {
             Result::Left(lhs) => Result::Left(vec![lhs]),
