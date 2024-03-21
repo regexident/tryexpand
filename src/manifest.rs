@@ -162,7 +162,7 @@ where
         bench: vec![],
         test: vec![],
         example: vec![],
-        lints: None,
+        lints: Inheritable::Set(BTreeMap::default()),
     };
 
     Ok(manifest)
