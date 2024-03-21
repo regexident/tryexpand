@@ -26,6 +26,8 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `yansi` from `0.5.1` to `1.0.1`
+  - `cargo_toml` from `0.19.1` to `0.19.2`
+  - `thiserror` from `1.0.57` to `1.0.58`
 
 ### Deprecated
 
