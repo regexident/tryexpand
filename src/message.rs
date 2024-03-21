@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use yansi::Paint;
+use yansi::{Paint, Painted};
 
 use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
 
@@ -86,19 +86,16 @@ pub(crate) fn snapshot_mismatch(path: &Path, snapshot_path: &Path, expected: &st
 }
 
 pub(crate) fn snapshot_created(path: &Path, snapshot_path: &Path, snapshot: &str) {
-    eprintln!(
-        "{path} - {}",
-        Paint::yellow("created"),
-        path = path.display()
-    );
+    eprintln!("{path} - {}", "created".yellow(), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!(
         "{}",
-        Paint::green(format!(
+        format!(
             "Snapshot created at path {path}",
             path = snapshot_path.display()
-        ))
+        )
+        .green()
     );
 
     print_valid_snapshot(snapshot);
@@ -107,19 +104,16 @@ pub(crate) fn snapshot_created(path: &Path, snapshot_path: &Path, snapshot: &str
 }
 
 pub(crate) fn snapshot_updated(path: &Path, snapshot_path: &Path, before: &str, after: &str) {
-    eprintln!(
-        "{path} - {}",
-        Paint::yellow("updated"),
-        path = path.display()
-    );
+    eprintln!("{path} - {}", "updated".yellow(), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!(
         "{}",
-        Paint::green(format!(
+        format!(
             "Snapshot updated at path {path}",
             path = snapshot_path.display()
-        ))
+        )
+        .green()
     );
 
     print_snapshot_diff(before, after);
@@ -128,15 +122,16 @@ pub(crate) fn snapshot_updated(path: &Path, snapshot_path: &Path, before: &str, 
 }
 
 pub(crate) fn snapshot_expected(path: &Path, snapshot_path: &Path, snapshot: &str) {
-    eprintln!("{path} - {}", Paint::red("MISSING"), path = path.display());
+    eprintln!("{path} - {}", "MISSING".red(), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!(
         "{}",
-        Paint::red(format!(
+        format!(
             "Expected snapshot at {path}",
             path = snapshot_path.display()
-        ))
+        )
+        .red()
     );
 
     print_invalid_snapshot(snapshot);
@@ -147,15 +142,16 @@ pub(crate) fn snapshot_expected(path: &Path, snapshot_path: &Path, snapshot: &st
 }
 
 pub(crate) fn snapshot_unexpected(path: &Path, snapshot_path: &Path, snapshot: &str) {
-    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("{path} - {}", "ERROR".red(), path = path.display());
     eprintln!("--------------------------");
 
     eprintln!(
         "{}",
-        Paint::red(format!(
+        format!(
             "Unexpected snapshot at {path}",
             path = snapshot_path.display()
-        ))
+        )
+        .red()
     );
 
     print_invalid_snapshot(snapshot);
@@ -220,10 +216,10 @@ pub(crate) fn unexpected_failure(
 }
 
 pub(crate) fn command_failure(path: &Path, error: &str) {
-    eprintln!("{path} - {}", Paint::red("ERROR"), path = path.display());
+    eprintln!("{path} - {}", "ERROR".red(), path = path.display());
     eprintln!("--------------------------");
 
-    eprintln!("{}", Paint::red("Command failure!"));
+    eprintln!("{}", "Command failure!".red());
 
     print_error_snapshot(error);
 
@@ -237,7 +233,7 @@ pub(crate) fn command_failure(path: &Path, error: &str) {
 pub(crate) fn command_abortion(num_errors: usize) {
     eprintln!(
         "{}",
-        Paint::red(format!("Aborting due to {num_errors} previous errors."))
+        format!("Aborting due to {num_errors} previous errors.").red()
     );
     eprintln!();
 }
@@ -306,11 +302,12 @@ fn print_overwrite_hint() {
     eprintln!();
     eprintln!(
         "{}",
-        Paint::cyan(format!(
+        format!(
             "help: Overwrite the snapshot file by running your tests with `{key}={val}`.",
             key = TRYEXPAND_ENV_KEY,
             val = TRYEXPAND_ENV_VAL_OVERWRITE
-        ))
+        )
+        .cyan()
     );
 }
 
@@ -325,13 +322,13 @@ fn print_remove_hint(path: &Path) {
     eprintln!();
     eprintln!(
         "{}",
-        Paint::cyan(format!("help: Remove the snapshot file at {path_display}.",))
+        format!("help: Remove the snapshot file at {path_display}.",).cyan()
     );
 }
 
 fn print_block<F>(block: &str, f: F)
 where
-    F: Fn(String) -> Paint<String>,
+    F: Fn(&str) -> Painted<&str>,
 {
     let lines: Vec<&str> = block.lines().collect();
     print_lines(&lines, f)
@@ -339,7 +336,7 @@ where
 
 fn print_lines<F>(lines: &[&str], f: F)
 where
-    F: Fn(String) -> Paint<String>,
+    F: Fn(&str) -> Painted<&str>,
 {
     print_lines_bounded(lines, MAX_BLOCK_LINES, f)
 }
@@ -347,7 +344,7 @@ where
 #[allow(dead_code)]
 fn print_block_bounded<F>(block: &str, max_lines: usize, f: F)
 where
-    F: Fn(String) -> Paint<String>,
+    F: Fn(&str) -> Painted<&str>,
 {
     let lines: Vec<&str> = block.lines().collect();
     print_lines_bounded(&lines, max_lines, f)
@@ -355,16 +352,16 @@ where
 
 fn print_lines_bounded<F>(lines: &[&str], max_lines: usize, f: F)
 where
-    F: Fn(String) -> Paint<String>,
+    F: Fn(&str) -> Painted<&str>,
 {
     let (prefix, infix_len, suffix) = lines_bounded(lines, max_lines);
     for &line in prefix {
-        eprintln!("{}", f(line.to_owned()));
+        eprintln!("{}", f(line));
     }
     if let Some(suffix) = suffix {
         eprintln!("... {infix_len} LINES OMITTED IN LOG ...");
         for &line in suffix {
-            eprintln!("{}", f(line.to_owned()));
+            eprintln!("{}", f(line));
         }
     }
 }
@@ -391,36 +388,36 @@ fn print_diff_bounded(before: &str, after: &str, max_lines: usize, num_context_l
             diff::Result::Left(lines) => {
                 let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
                 for &line in prefix {
-                    eprintln!("{}", Paint::red(format!("- {line}")));
+                    eprintln!("{}", format!("- {line}").red());
                 }
                 if let Some(suffix) = suffix {
                     eprintln!("- ... {infix_len} LINES OMITTED IN LOG ...");
                     for &line in suffix {
-                        eprintln!("{}", Paint::red(format!("- {line}")));
+                        eprintln!("{}", format!("- {line}").red());
                     }
                 }
             }
             diff::Result::Both(lines, _) => {
                 let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
                 for &line in prefix {
-                    eprintln!("{}", Paint::blue(format!("  {line}")));
+                    eprintln!("{}", format!("  {line}").blue());
                 }
                 if let Some(suffix) = suffix {
                     eprintln!("  ... {infix_len} LINES OMITTED IN LOG ...");
                     for &line in suffix {
-                        eprintln!("{}", Paint::blue(format!("  {line}")));
+                        eprintln!("{}", format!("  {line}").blue());
                     }
                 }
             }
             diff::Result::Right(lines) => {
                 let (prefix, infix_len, suffix) = lines_bounded(&lines, max_lines_per_run);
                 for &line in prefix {
-                    eprintln!("{}", Paint::green(format!("+ {line}")));
+                    eprintln!("{}", format!("+ {line}").green());
                 }
                 if let Some(suffix) = suffix {
                     eprintln!("+ ... {infix_len} LINES OMITTED IN LOG ...");
                     for &line in suffix {
-                        eprintln!("{}", Paint::green(format!("+ {line}")));
+                        eprintln!("{}", format!("+ {line}").green());
                     }
                 }
             }
