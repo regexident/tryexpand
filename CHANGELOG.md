@@ -24,9 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Updated dependencies:
-  - `cargo_toml` from `0.19.2` to `0.20.0`
-- Changed location of generated test project's cargo config file from './.cargo/config' to './.cargo/config.toml'.
+- n/a
 
 ### Deprecated
 
@@ -51,6 +49,14 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.8.2] - 2024-05-05
+
+### Changed
+
+- Updated dependencies:
+  - `cargo_toml` from `0.19.2` to `0.20.0`
+- Changed location of generated test project's cargo config file from './.cargo/config' to './.cargo/config.toml'.
 
 ### Changed
 
