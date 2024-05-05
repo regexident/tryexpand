@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Have `cargo check/run/test` always run without terminal colors (i.e. `--color "never"`).
 
 ### Deprecated
 
