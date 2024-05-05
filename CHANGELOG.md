@@ -24,7 +24,8 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Updated dependencies:
+  - `cargo_toml` from `0.19.2` to `0.20.0`
 
 ### Deprecated
 
