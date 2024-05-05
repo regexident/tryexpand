@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Fixed bug that would write stdout's output to snapshot file with '.err.txt' extension instead of '.out.txt'.
 
 ### Performance
 
