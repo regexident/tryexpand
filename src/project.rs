@@ -70,7 +70,7 @@ impl Project {
 
         utils::create_dir_all(project.dir.join(".cargo"))?;
 
-        utils::write(project.dir.join(".cargo").join("config"), config_toml)?;
+        utils::write(project.dir.join(".cargo").join("config.toml"), config_toml)?;
         utils::write(project.dir.join("Cargo.toml"), manifest_toml)?;
         utils::write(project.dir.join("lib.rs"), b"\n")?;
 

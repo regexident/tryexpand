@@ -26,6 +26,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `cargo_toml` from `0.19.2` to `0.20.0`
+- Changed location of generated test project's cargo config file from './.cargo/config' to './.cargo/config.toml'.
 
 ### Deprecated
 
