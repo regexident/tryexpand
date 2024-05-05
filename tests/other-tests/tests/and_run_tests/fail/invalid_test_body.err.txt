@@ -1,0 +1,8 @@
+error[E0425]: cannot find value `asdf` in this scope
+ --> /tests/and_run_tests/fail/invalid_test_body.rs:5:5
+  |
+5 |     asdf
+  |     ^^^^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `<CRATE>` (bin "<BIN>" test) due to previous error
