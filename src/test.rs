@@ -304,7 +304,7 @@ impl Test {
                         }
                         PostExpandOutput::Test(output) => {
                             snapshots.push((&output_snapshot_path, output.stdout.clone()));
-                            snapshots.push((&error_snapshot_path, output.stdout.clone()));
+                            snapshots.push((&error_snapshot_path, output.stderr.clone()));
                         }
                         PostExpandOutput::Run(output) => {
                             snapshots.push((&output_snapshot_path, output.stdout.clone()));
