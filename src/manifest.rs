@@ -78,12 +78,12 @@ where
         } = source_dependency;
 
         let mut dependency = DependencyDetail::default();
-        dependency.package = rename.clone();
+        dependency.package.clone_from(rename);
         dependency.version = Some(req.to_string());
         dependency.optional = *optional;
         dependency.default_features = *uses_default_features;
-        dependency.features = features.clone();
-        dependency.registry = registry.clone();
+        dependency.features.clone_from(features);
+        dependency.registry.clone_from(registry);
         dependency.path = path.as_ref().map(|path| path.to_string());
         dependency.default_features = true;
 
