@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Have `cargo check/run/test` always run without terminal colors (i.e. `--color "never"`).
+- n/a
 
 ### Deprecated
 
@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- Fixed bug that would write stdout's output to snapshot file with '.err.txt' extension instead of '.out.txt'.
+- n/a
 
 ### Performance
 
@@ -49,6 +49,16 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.8.3] - 2024-05-05
+
+### Changed
+
+- Have `cargo check/run/test` always run without terminal colors (i.e. `--color "never"`).
+
+### Fixed
+
+- Fixed bug that would write stdout's output to snapshot file with '.err.txt' extension instead of '.out.txt'.
 
 ## [0.8.2] - 2024-05-05
 
