@@ -2,7 +2,11 @@ use std::path::Path;
 
 use yansi::{Paint, Painted};
 
-use crate::{test::TestOutcome, TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE};
+use crate::{
+    error::{Error, Result},
+    test::TestOutcome,
+    TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_OVERWRITE,
+};
 
 const MAX_BLOCK_LINES: usize = 100;
 
@@ -338,7 +342,13 @@ fn print_lines<F>(lines: &[&str], f: F)
 where
     F: Fn(&str) -> Painted<&str>,
 {
-    print_lines_bounded(lines, MAX_BLOCK_LINES, f)
+    let max_lines = if should_truncate_output().unwrap() {
+        MAX_BLOCK_LINES
+    } else {
+        usize::MAX
+    };
+
+    print_lines_bounded(lines, max_lines, f)
 }
 
 #[allow(dead_code)]
@@ -367,7 +377,13 @@ where
 }
 
 fn print_diff(before: &str, after: &str, num_context_lines: usize) {
-    print_diff_bounded(before, after, MAX_BLOCK_LINES, num_context_lines)
+    let max_lines = if should_truncate_output().unwrap() {
+        MAX_BLOCK_LINES
+    } else {
+        usize::MAX
+    };
+
+    print_diff_bounded(before, after, max_lines, num_context_lines)
 }
 
 fn print_diff_bounded(before: &str, after: &str, max_lines: usize, num_context_lines: usize) {
@@ -498,5 +514,21 @@ where
         }
 
         Some(result)
+    }
+}
+
+fn should_truncate_output() -> Result<bool> {
+    let key = crate::TRYEXPAND_TRUNCATE_OUTPUT_ENV_KEY;
+    let Some(var) = std::env::var_os(key) else {
+        return Ok(true);
+    };
+    let value = var.to_string_lossy().to_lowercase().to_owned();
+    match value.as_str() {
+        "1" | "yes" | "true" => Ok(true),
+        "0" | "no" | "false" => Ok(false),
+        _ => Err(Error::UnrecognizedEnv {
+            key: key.to_owned(),
+            value,
+        }),
     }
 }

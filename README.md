@@ -178,9 +178,16 @@ cargo +1.76.0 test <OPTIONS>
 
 ### Debugging
 
+#### `TRYEXPAND_KEEP_ARTIFACTS`
+
 For each `expand()`-like method call within your tests a temporary and uniquely named Rust project will get generated within `$CARGO_TARGET_DIR/target/tests/`.
 By default these projects will get deleted upon test completion (regardless of the outcome).
 If you wish to take a look at the actual code/projects being expanded you can provide `TRYEXPAND_KEEP_ARTIFACTS=1` (e.g. `$ TRYEXPAND_KEEP_ARTIFACTS=1 cargo test`) and `tryexpand` will skip the cleanup.
+
+#### `TRYEXPAND_TRUNCATE_OUTPUT`
+
+By default `tryexpand` truncates console output that's longer than 100 lines.
+If you wish to temporarily turn this behavior you can provide `TRYEXPAND_TRUNCATE_OUTPUT=0` (e.g. `$ TRYEXPAND_TRUNCATE_OUTPUT=0 cargo test`) and `tryexpand` will produce the full console output.
 
 ## Contributing
 
