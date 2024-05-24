@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Added `TRYEXPAND_TRUNCATE_OUTPUT` CLI option for turning off truncation of console output.
 
 ### Changed
 
