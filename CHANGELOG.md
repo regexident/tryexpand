@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `TRYEXPAND_TRUNCATE_OUTPUT` CLI option for turning off truncation of console output.
+- n/a
 
 ### Changed
 
@@ -49,6 +49,12 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.8.4] - 2024-05-24
+
+### Added
+
+- Added `TRYEXPAND_TRUNCATE_OUTPUT` CLI option for turning off truncation of console output.
 
 ## [0.8.3] - 2024-05-05
 
