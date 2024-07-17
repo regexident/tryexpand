@@ -7,8 +7,8 @@ on:
     branches: [main, "**"]
     paths-ignore:
       - "CHANGELOG.md"
-  schedule:
-    - cron: "0 3 * * 0-6"
+  # schedule:
+  #   - cron: "0 3 * * 0-6"
 
 jobs:
   info:
