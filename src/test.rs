@@ -12,7 +12,15 @@ use crate::{
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum PostExpandAction {
+pub(crate) enum Action {
+    Expand,
+    Check,
+    Test,
+    Run,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub(crate) enum PostAction {
     Check,
     Test,
     Run,
@@ -81,22 +89,16 @@ impl std::ops::BitOrAssign for TestStatus {
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct TestReport {
-    pub expand: CargoOutput,
-    pub post_expand: Option<PostExpandOutput>,
+    pub action: ActionOutput,
+    pub post_action: Option<ActionOutput>,
 }
 
 impl TestReport {
-    pub fn post_expand_output(&self) -> Option<&CargoOutput> {
-        self.post_expand
-            .as_ref()
-            .map(|post_expand| post_expand.output())
-    }
-
     pub fn evaluation(&self) -> TestStatus {
-        let mut evaluation: TestStatus = self.expand.evaluation;
+        let mut evaluation: TestStatus = self.action.evaluation();
 
-        if let Some(post_expand) = &self.post_expand {
-            evaluation &= post_expand.evaluation();
+        if let Some(post_action) = &self.post_action {
+            evaluation &= post_action.evaluation();
         }
 
         evaluation
@@ -104,15 +106,17 @@ impl TestReport {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub(crate) enum PostExpandOutput {
+pub(crate) enum ActionOutput {
+    Expand(CargoOutput),
     Check(CargoOutput),
     Test(CargoOutput),
     Run(CargoOutput),
 }
 
-impl PostExpandOutput {
+impl ActionOutput {
     fn output(&self) -> &CargoOutput {
         match self {
+            Self::Expand(output) => output,
             Self::Check(output) => output,
             Self::Test(output) => output,
             Self::Run(output) => output,
@@ -121,6 +125,7 @@ impl PostExpandOutput {
 
     fn evaluation(&self) -> TestStatus {
         match self {
+            Self::Expand(output) => output.evaluation,
             Self::Check(output) => output.evaluation,
             Self::Test(output) => output.evaluation,
             Self::Run(output) => output.evaluation,
@@ -192,7 +197,8 @@ enum Comparison {
 
 #[derive(Debug)]
 pub(crate) struct TestPlan {
-    pub post_expand: Option<PostExpandAction>,
+    pub action: Action,
+    pub post_action: Option<PostAction>,
     pub behavior: TestBehavior,
     pub expectation: TestStatus,
 }
@@ -212,7 +218,8 @@ impl Test {
         observe: &mut dyn FnMut(TestOutcome),
     ) -> Result<TestStatus> {
         let TestPlan {
-            post_expand: post_expand_action,
+            action,
+            post_action,
             behavior,
             expectation,
         } = plan;
@@ -229,22 +236,21 @@ impl Test {
             *behavior
         };
 
-        let expand = cargo::expand(project, self, options)?;
+        let action_output = match action {
+            Action::Expand => ActionOutput::Expand(cargo::expand(project, self, options)?),
+            Action::Check => ActionOutput::Check(cargo::check(project, self, options)?),
+            Action::Test => ActionOutput::Test(cargo::test(project, self, options)?),
+            Action::Run => ActionOutput::Run(cargo::run(project, self, options)?),
+        };
 
-        let post_expand = if expand.evaluation == TestStatus::Success {
-            if let Some(action) = post_expand_action {
-                let post_expand = match action {
-                    PostExpandAction::Check => {
-                        PostExpandOutput::Check(cargo::check(project, self, options)?)
-                    }
-                    PostExpandAction::Test => {
-                        PostExpandOutput::Test(cargo::test(project, self, options)?)
-                    }
-                    PostExpandAction::Run => {
-                        PostExpandOutput::Run(cargo::run(project, self, options)?)
-                    }
+        let post_action_output = if action_output.evaluation() == TestStatus::Success {
+            if let Some(post_action) = post_action {
+                let post_action = match post_action {
+                    PostAction::Check => ActionOutput::Check(cargo::check(project, self, options)?),
+                    PostAction::Test => ActionOutput::Test(cargo::test(project, self, options)?),
+                    PostAction::Run => ActionOutput::Run(cargo::run(project, self, options)?),
                 };
-                Some(post_expand)
+                Some(post_action)
             } else {
                 None
             }
@@ -253,8 +259,8 @@ impl Test {
         };
 
         let report = TestReport {
-            expand,
-            post_expand,
+            action: action_output,
+            post_action: post_action_output,
         };
 
         let source = String::from_utf8_lossy(&utils::read(&self.path)?).into_owned();
@@ -287,26 +293,55 @@ impl Test {
         let output_snapshot_path = self.path.with_extension(crate::OUT_TXT_FILE_SUFFIX);
         let error_snapshot_path = self.path.with_extension(crate::ERR_TXT_FILE_SUFFIX);
 
-        let mut snapshots = vec![
-            // We always want the expansion outputs:
-            (&expanded_snapshot_path, report.expand.stdout.clone()),
-        ];
+        if let Some(post_action) = &report.post_action {
+            assert!(
+                !matches!(post_action, ActionOutput::Expand(_)),
+                "the `expand` action is not allowed as a post-action"
+            );
+            assert!(
+                matches!(report.action, ActionOutput::Expand(_)),
+                "only the `expand` action can have a post-action"
+            );
+        }
 
-        match report.expand.evaluation {
+        let mut snapshots = vec![];
+
+        // We always want the action's expansion outputs:
+        match &report.action {
+            ActionOutput::Expand(output) => {
+                snapshots.push((&expanded_snapshot_path, output.stdout.clone()));
+            }
+            ActionOutput::Check(output) => {
+                snapshots.push((&error_snapshot_path, output.stderr.clone()));
+            }
+            ActionOutput::Test(output) => {
+                snapshots.push((&output_snapshot_path, output.stdout.clone()));
+                snapshots.push((&error_snapshot_path, output.stderr.clone()));
+            }
+            ActionOutput::Run(output) => {
+                snapshots.push((&output_snapshot_path, output.stdout.clone()));
+                snapshots.push((&error_snapshot_path, output.stderr.clone()));
+            }
+        }
+
+        match report.action.evaluation() {
             TestStatus::Failure => {
-                snapshots.push((&error_snapshot_path, report.expand.stderr.clone()));
+                snapshots.push((&error_snapshot_path, report.action.output().stderr.clone()));
             }
             TestStatus::Success => {
-                if let Some(post_expand) = &report.post_expand {
-                    match &post_expand {
-                        PostExpandOutput::Check(output) => {
+                if let Some(post_action) = &report.post_action {
+                    match &post_action {
+                        ActionOutput::Expand(_output) => {
+                            unreachable!("`expand` should not be accessible as a post-action")
+                        }
+                        ActionOutput::Check(output) => {
                             snapshots.push((&error_snapshot_path, output.stderr.clone()));
                         }
-                        PostExpandOutput::Test(output) => {
+                        ActionOutput::Test(output) => {
                             snapshots.push((&output_snapshot_path, output.stdout.clone()));
                             snapshots.push((&error_snapshot_path, output.stderr.clone()));
                         }
-                        PostExpandOutput::Run(output) => {
+                        ActionOutput::Run(output) => {
                             snapshots.push((&output_snapshot_path, output.stdout.clone()));
                             snapshots.push((&error_snapshot_path, output.stderr.clone()));
                         }
@@ -327,10 +362,21 @@ impl Test {
         observe: &mut dyn FnMut(TestOutcome),
     ) {
         let source = source.to_owned();
-        let expanded = report.expand.stdout.clone();
-        let (output, error) = match report.post_expand_output() {
-            Some(post_expand) => (post_expand.stdout.clone(), post_expand.stderr.clone()),
-            None => (None, report.expand.stderr.clone()),
+
+        let action_output = report.action.output();
+        let post_action_output = report
+            .post_action
+            .as_ref()
+            .map(|post_action| post_action.output());
+
+        let expanded = match &report.action {
+            ActionOutput::Expand(output) => output.stdout.clone(),
+            _ => None,
+        };
+
+        let (output, error) = match &post_action_output {
+            Some(post_action) => (post_action.stdout.clone(), post_action.stderr.clone()),
+            None => (None, action_output.stderr.clone()),
         };
         observe(TestOutcome::UnexpectedSuccess {
             source,
@@ -347,10 +393,21 @@ impl Test {
         observe: &mut dyn FnMut(TestOutcome),
     ) {
         let source = source.to_owned();
-        let expanded = report.expand.stdout.clone();
-        let (output, error) = match report.post_expand_output() {
-            Some(post_expand) => (post_expand.stdout.clone(), post_expand.stderr.clone()),
-            None => (None, report.expand.stderr.clone()),
+
+        let action_output = report.action.output();
+        let post_action_output = report
+            .post_action
+            .as_ref()
+            .map(|post_action| post_action.output());
+
+        let expanded = match &report.action {
+            ActionOutput::Expand(output) => output.stdout.clone(),
+            _ => None,
+        };
+
+        let (output, error) = match post_action_output {
+            Some(post_action) => (post_action.stdout.clone(), post_action.stderr.clone()),
+            None => (None, action_output.stderr.clone()),
         };
         observe(TestOutcome::UnexpectedFailure {
             source,

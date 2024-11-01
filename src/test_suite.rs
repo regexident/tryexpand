@@ -14,7 +14,7 @@ use crate::{
     message,
     options::Options,
     project::Project,
-    test::{PostExpandAction, Test, TestBehavior, TestPlan, TestStatus},
+    test::{Action, PostAction, Test, TestBehavior, TestPlan, TestStatus},
     TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
@@ -28,8 +28,116 @@ pub struct TestSuiteFail {
     test_suite: TestSuite,
 }
 
+pub struct ExpandTestSuite(pub(crate) TestSuite);
+
+impl ExpandTestSuite {
+    pub fn arg<T>(self, arg: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        Self(self.0.arg(arg))
+    }
+
+    pub fn args<T, I>(self, args: I) -> Self
+    where
+        T: AsRef<str>,
+        I: IntoIterator<Item = T>,
+    {
+        Self(self.0.args(args))
+    }
+
+    pub fn env<K, V>(self, key: K, value: V) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        Self(self.0.env(key, value))
+    }
+
+    pub fn envs<K, V, I>(self, envs: I) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        Self(self.0.envs(envs))
+    }
+
+    pub fn skip_overwrite(self) -> Self {
+        Self(self.0.skip_overwrite())
+    }
+
+    pub fn and_check(self) -> BuildTestSuite {
+        BuildTestSuite(self.0.and_check())
+    }
+
+    pub fn and_run(self) -> BuildTestSuite {
+        BuildTestSuite(self.0.and_run())
+    }
+
+    pub fn and_run_tests(self) -> BuildTestSuite {
+        BuildTestSuite(self.0.and_run_tests())
+    }
+
+    pub fn expect_pass(self) -> TestSuitePass {
+        self.0.expect_pass()
+    }
+
+    pub fn expect_fail(self) -> TestSuiteFail {
+        self.0.expect_fail()
+    }
+}
+
+pub struct BuildTestSuite(pub(crate) TestSuite);
+
+impl BuildTestSuite {
+    pub fn arg<T>(self, arg: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        Self(self.0.arg(arg))
+    }
+
+    pub fn args<T, I>(self, args: I) -> Self
+    where
+        T: AsRef<str>,
+        I: IntoIterator<Item = T>,
+    {
+        Self(self.0.args(args))
+    }
+
+    pub fn env<K, V>(self, key: K, value: V) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        Self(self.0.env(key, value))
+    }
+
+    pub fn envs<K, V, I>(self, envs: I) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        Self(self.0.envs(envs))
+    }
+
+    pub fn skip_overwrite(self) -> Self {
+        Self(self.0.skip_overwrite())
+    }
+
+    pub fn expect_pass(self) -> TestSuitePass {
+        self.0.expect_pass()
+    }
+
+    pub fn expect_fail(self) -> TestSuiteFail {
+        self.0.expect_fail()
+    }
+}
+
 #[derive(Debug)]
-pub struct TestSuite {
+pub(crate) struct TestSuite {
     pub(crate) project: Project,
     pub(crate) plan: TestPlan,
     pub(crate) tests: Vec<Test>,
@@ -38,98 +146,12 @@ pub struct TestSuite {
 }
 
 impl TestSuite {
-    pub fn arg<T>(self, arg: T) -> Self
-    where
-        T: AsRef<str>,
-    {
-        self.args([arg])
-    }
-
-    pub fn args<T, I>(mut self, args: I) -> Self
-    where
-        T: AsRef<str>,
-        I: IntoIterator<Item = T>,
-    {
-        self.options
-            .args
-            .extend(args.into_iter().map(|str| str.as_ref().to_owned()));
-        self
-    }
-
-    pub fn env<K, V>(self, key: K, value: V) -> Self
-    where
-        K: AsRef<str>,
-        V: AsRef<str>,
-    {
-        self.envs([(key, value)])
-    }
-
-    pub fn envs<K, V, I>(mut self, envs: I) -> Self
-    where
-        K: AsRef<str>,
-        V: AsRef<str>,
-        I: IntoIterator<Item = (K, V)>,
-    {
-        for (key, value) in envs.into_iter() {
-            let key = key.as_ref().to_owned();
-            let value = value.as_ref().to_owned();
-            self.options.envs.insert(key, value);
-        }
-        self
-    }
-
-    pub fn skip_overwrite(mut self) -> Self {
-        self.options.skip_overwrite = true;
-        self
-    }
-
-    pub fn and_check(self) -> Self {
-        self.and_post_check(PostExpandAction::Check)
-    }
-
-    pub fn and_run_tests(self) -> Self {
-        self.and_post_check(PostExpandAction::Test)
-    }
-
-    pub fn and_run(self) -> Self {
-        self.and_post_check(PostExpandAction::Run)
-    }
-
-    fn and_post_check(mut self, action: PostExpandAction) -> Self {
-        if let Some(existing_action) = &self.plan.post_expand {
-            let cmd = match existing_action {
-                PostExpandAction::Check => "check",
-                PostExpandAction::Test => "test",
-                PostExpandAction::Run => "run",
-            };
-            panic!("Post-expand action already set to `cargo {cmd}`!");
-        }
-
-        self.plan.post_expand = Some(action);
-        self
-    }
-
-    pub fn expect_pass(self) -> TestSuitePass {
-        TestSuitePass {
-            test_suite: self.expect_result(TestStatus::Success),
-        }
-    }
-
-    pub fn expect_fail(self) -> TestSuiteFail {
-        TestSuiteFail {
-            test_suite: self.expect_result(TestStatus::Failure),
-        }
-    }
-
-    fn expect_result(mut self, expectation: TestStatus) -> Self {
-        self.plan.expectation = expectation;
-        self
-    }
-}
-
-impl TestSuite {
     #[track_caller]
-    pub(crate) fn new<I, P>(patterns: I, location: &std::panic::Location) -> Result<Self>
+    pub(crate) fn new<I, P>(
+        patterns: I,
+        action: Action,
+        location: &std::panic::Location,
+    ) -> Result<Self>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -215,7 +237,8 @@ impl TestSuite {
             });
 
         let plan = TestPlan {
-            post_expand: None,
+            action,
+            post_action: None,
             behavior: test_behavior_from_env().unwrap(),
             expectation: TestStatus::Success,
         };
@@ -236,6 +259,94 @@ impl TestSuite {
             options,
             call_site,
         })
+    }
+
+    pub(crate) fn arg<T>(self, arg: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        self.args([arg])
+    }
+
+    pub(crate) fn args<T, I>(mut self, args: I) -> Self
+    where
+        T: AsRef<str>,
+        I: IntoIterator<Item = T>,
+    {
+        self.options
+            .args
+            .extend(args.into_iter().map(|str| str.as_ref().to_owned()));
+        self
+    }
+
+    pub(crate) fn env<K, V>(self, key: K, value: V) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.envs([(key, value)])
+    }
+
+    pub(crate) fn envs<K, V, I>(mut self, envs: I) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        for (key, value) in envs.into_iter() {
+            let key = key.as_ref().to_owned();
+            let value = value.as_ref().to_owned();
+            self.options.envs.insert(key, value);
+        }
+        self
+    }
+
+    pub(crate) fn skip_overwrite(mut self) -> Self {
+        self.options.skip_overwrite = true;
+        self
+    }
+
+    pub(crate) fn and_check(self) -> Self {
+        self.and_post_check(PostAction::Check)
+    }
+
+    pub(crate) fn and_run(self) -> Self {
+        self.and_post_check(PostAction::Run)
+    }
+
+    pub(crate) fn and_run_tests(self) -> Self {
+        self.and_post_check(PostAction::Test)
+    }
+
+    pub(crate) fn expect_pass(self) -> TestSuitePass {
+        TestSuitePass {
+            test_suite: self.expect_result(TestStatus::Success),
+        }
+    }
+
+    pub(crate) fn expect_fail(self) -> TestSuiteFail {
+        TestSuiteFail {
+            test_suite: self.expect_result(TestStatus::Failure),
+        }
+    }
+
+    fn and_post_check(mut self, action: PostAction) -> Self {
+        if let Some(existing_action) = &self.plan.post_action {
+            let cmd = match existing_action {
+                PostAction::Check => "check",
+                PostAction::Test => "test",
+                PostAction::Run => "run",
+            };
+            panic!("Post-expand action already set to `cargo {cmd}`!");
+        }
+
+        self.plan.post_action = Some(action);
+        self
+    }
+
+    fn expect_result(mut self, expectation: TestStatus) -> Self {
+        self.plan.expectation = expectation;
+        self
     }
 
     #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
