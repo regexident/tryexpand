@@ -14,7 +14,7 @@ use crate::{
     message,
     options::Options,
     project::Project,
-    test::{Action, PostAction, Test, TestBehavior, TestPlan, TestStatus},
+    test::{Action, Test, TestBehavior, TestPlan, TestStatus},
     TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
@@ -307,15 +307,15 @@ impl TestSuite {
     }
 
     pub(crate) fn and_check(self) -> Self {
-        self.and_post_check(PostAction::Check)
+        self.and_post_check(Action::Check)
     }
 
     pub(crate) fn and_run(self) -> Self {
-        self.and_post_check(PostAction::Run)
+        self.and_post_check(Action::Run)
     }
 
     pub(crate) fn and_run_tests(self) -> Self {
-        self.and_post_check(PostAction::Test)
+        self.and_post_check(Action::Test)
     }
 
     pub(crate) fn expect_pass(self) -> TestSuitePass {
@@ -330,12 +330,13 @@ impl TestSuite {
         }
     }
 
-    fn and_post_check(mut self, action: PostAction) -> Self {
+    fn and_post_check(mut self, action: Action) -> Self {
         if let Some(existing_action) = &self.plan.post_action {
             let cmd = match existing_action {
-                PostAction::Check => "check",
-                PostAction::Test => "test",
-                PostAction::Run => "run",
+                Action::Expand => panic!("unexpected `expand` as post-action"),
+                Action::Check => "check",
+                Action::Test => "test",
+                Action::Run => "run",
             };
             panic!("Post-expand action already set to `cargo {cmd}`!");
         }
