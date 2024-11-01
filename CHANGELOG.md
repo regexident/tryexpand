@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Stopped overriding `CARGO_TARGET_DIR` (you can still opt-in via `.env("CARGO_TARGET_DIR", "…")`) (see ###Fixed).
 
 ### Deprecated
 
@@ -36,11 +36,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Fixed a bug (by no longer overriding `CARGO_TARGET_DIR`) that would sometimes cause errors of individual files to get wrongly reported all bundled together.
 
 ### Performance
 
-- n/a
+- Due to no longer using the same `CARGO_TARGET_DIR` for all tests (even across test groups) there may be some (hopefully minor) performance regressions for some projects.
 
 ### Security
 
