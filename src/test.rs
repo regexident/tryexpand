@@ -1,3 +1,4 @@
+use core::panic;
 use std::{
     ops::BitAnd,
     path::{Path, PathBuf},
@@ -14,13 +15,6 @@ use crate::{
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Action {
     Expand,
-    Check,
-    Test,
-    Run,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum PostAction {
     Check,
     Test,
     Run,
@@ -198,7 +192,7 @@ enum Comparison {
 #[derive(Debug)]
 pub(crate) struct TestPlan {
     pub action: Action,
-    pub post_action: Option<PostAction>,
+    pub post_action: Option<Action>,
     pub behavior: TestBehavior,
     pub expectation: TestStatus,
 }
@@ -224,6 +218,18 @@ impl Test {
             expectation,
         } = plan;
 
+        if let Some(post_action) = post_action {
+            assert!(
+                post_action != &Action::Expand,
+                "the `expand` action is not allowed as a post-action"
+            );
+
+            assert!(
+                plan.action == Action::Expand,
+                "only the `expand` action can have a post-action"
+            );
+        }
+
         let behavior = if options.skip_overwrite {
             // If the `skip_overwrite` flag is set we just check files,
             // instead of overwriting. The main purpose of this behavior
@@ -246,9 +252,10 @@ impl Test {
         let post_action_output = if action_output.evaluation() == TestStatus::Success {
             if let Some(post_action) = post_action {
                 let post_action = match post_action {
-                    PostAction::Check => ActionOutput::Check(cargo::check(project, self, options)?),
-                    PostAction::Test => ActionOutput::Test(cargo::test(project, self, options)?),
-                    PostAction::Run => ActionOutput::Run(cargo::run(project, self, options)?),
+                    Action::Expand => panic!("unexpected `expand` as post-action"),
+                    Action::Check => ActionOutput::Check(cargo::check(project, self, options)?),
+                    Action::Test => ActionOutput::Test(cargo::test(project, self, options)?),
+                    Action::Run => ActionOutput::Run(cargo::run(project, self, options)?),
                 };
                 Some(post_action)
             } else {
