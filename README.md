@@ -31,9 +31,89 @@ cargo install --dev tryexpand
 
 Then under your crate's `tests/` directory, create `tests.rs` file containing calls to `tryexpand::expand()` and populate the `tests/expand/pass/`, `tests/expand/checked_pass/` and `tests/expand/fail/` directories with corresponding Rust source files under test.
 
+### Test actions
+
+The `tryexpand` crate exposes the following functions test actions:
+
+#### cargo expand
+
+The `tryexpand::expand(…)` function runs `cargo expand` for each test file and snapshot the results:
+
+```rust
+tryexpand::expand(
+    // ...
+)
+.expect_pass();
+```
+
+If you wish to also perform additional snapshot tests for all successfully expanded files you can do so via an additional call to either of these:
+
+- `.and_check()` to run `cargo check` for each test file and snapshot the results:
+
+  ```rust
+  tryexpand::expand(
+      // ...
+  )
+  .and_check()
+  .expect_pass();
+  ```
+
+- `.and_run()` to run `cargo run` for each test file and snapshot the results:
+
+  ```rust
+  tryexpand::expand(
+      // ...
+  )
+  .and_run()
+  .expect_pass();
+  ```
+
+- `.and_run_tests()` to run `cargo test` for each test file and snapshot the results:
+
+  ```rust
+  tryexpand::expand(
+      // ...
+  )
+  .and_run_tests()
+  .expect_pass();
+  ```
+
+#### cargo check
+
+The `tryexpand::check(…)` function runs `cargo check` for each test file and snapshot the results:
+
+```rust
+tryexpand::check(
+    // ...
+)
+.expect_pass();
+```
+
+#### cargo run
+
+The `tryexpand::run(…)` function runs `cargo run` for each test file and snapshot the results:
+
+```rust
+tryexpand::run(
+    // ...
+)
+.expect_pass();
+```
+
+#### cargo test
+
+The `tryexpand::run_tests(…)` function runs `cargo test` for each test file and snapshot the results:
+
+```rust
+tryexpand::run_tests(
+    // ...
+)
+.expect_pass();
+```
+
 #### Pass
 
-The base of each `tryexpand` test suite is the `tryexpand::expand()` function, which you pass a list of file paths (or glob patterns) to:
+The base of each `tryexpand` test suite is the corresponding [test action](#test-actions) function (we're using `tryexpand::expand(…)` here, but this applies to all actions), which you pass a list of file paths (or glob patterns) to:
 
 ```rust
 #[test]
@@ -50,11 +130,11 @@ pub fn pass() {
 }
 ```
 
-By default `tryexpand::expand()` assert matched test files to expand successfully.
+By default `tryexpand`'s [test action](#test-actions) functions assert matched test files to pass their tests.
 
 #### Fail
 
-If instead you want to write tests for macro expansion diagnostics, then will have to add a call to `.expect_fail()`:
+If instead you want to write tests for a failure's diagnostics, then ou can do so via an additional call to `.expect_fail()` (we're using `tryexpand::expand(…)` here, but this applies to all actions):
 
 ```rust
 #[test]
@@ -67,7 +147,7 @@ pub fn fail() {
 
 #### CLI arguments
 
-Additionally you can specify arguments to pass to `cargo expand`:
+Additionally you can specify arguments to pass to the `cargo` command:
 
 ```rust
 #[test]
@@ -81,7 +161,7 @@ tryexpand::expand(
 
 #### CLI env vars
 
-as well as environment variables to set for `cargo expand`:
+As well as environment variables to set for the `cargo` command:
 
 ```rust
 tryexpand::expand(
@@ -89,45 +169,6 @@ tryexpand::expand(
 )
 // ...
 .envs([("MY_ENV", "my env var value")])
-.expect_pass();
-```
-
-#### cargo check
-
-You can also make `tryexpand` type-check the expanded code for you (i.e. `cargo check`):
-
-```rust
-tryexpand::expand(
-    // ...
-)
-// ...
-.and_check()
-.expect_pass();
-```
-
-#### cargo run
-
-Or you can make `tryexpand` run the expanded code for you (i.e. `cargo run`):
-
-```rust
-tryexpand::expand(
-    // ...
-)
-// ...
-.and_run()
-.expect_pass();
-```
-
-#### cargo test
-
-Or you can make `tryexpand` run the expanded code's included unit tests (if there are any) for you (i.e. `cargo test`):
-
-```rust
-tryexpand::expand(
-    // ...
-)
-// ...
-.and_run_tests()
 .expect_pass();
 ```
 
