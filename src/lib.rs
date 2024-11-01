@@ -21,6 +21,7 @@ pub(crate) const TRYEXPAND_ENV_VAL_EXPECT: &str = "expect";
 
 pub(crate) const TRYEXPAND_KEEP_ARTIFACTS_ENV_KEY: &str = "TRYEXPAND_KEEP_ARTIFACTS";
 pub(crate) const TRYEXPAND_TRUNCATE_OUTPUT_ENV_KEY: &str = "TRYEXPAND_TRUNCATE_OUTPUT";
+pub(crate) const TRYEXPAND_DEBUG_LOG_ENV_KEY: &str = "TRYEXPAND_DEBUG_LOG";
 
 pub(crate) const OUT_RS_FILE_SUFFIX: &str = "out.rs";
 pub(crate) const OUT_TXT_FILE_SUFFIX: &str = "out.txt";

@@ -46,3 +46,19 @@ where
         source,
     })
 }
+
+pub(crate) fn should_debug_log() -> Result<bool> {
+    let key = crate::TRYEXPAND_DEBUG_LOG_ENV_KEY;
+    let Some(var) = std::env::var_os(key) else {
+        return Ok(false);
+    };
+    let value = var.to_string_lossy().to_lowercase().to_owned();
+    match value.as_str() {
+        "1" | "yes" | "true" => Ok(true),
+        "0" | "no" | "false" => Ok(false),
+        _ => Err(Error::UnrecognizedEnv {
+            key: key.to_owned(),
+            value,
+        }),
+    }
+}

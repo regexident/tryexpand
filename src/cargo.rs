@@ -8,6 +8,7 @@ use crate::{
     options::Options,
     project::Project,
     test::{Test, TestStatus},
+    utils::should_debug_log,
 };
 
 const RUSTFLAGS_ENV_KEY: &str = "RUSTFLAGS";
@@ -231,12 +232,25 @@ fn run_cargo_command(mut cargo: Command, options: &Options) -> Result<CargoOutpu
         cargo.env(key, value);
     }
 
+    if should_debug_log().unwrap_or(false) {
+        println!("Command: {:?}", cargo);
+        println!("Environment: {:?}", options.envs);
+        println!();
+    }
+
     let output = cargo
         .output()
         .map_err(|err| Error::CargoExpandExecution(err.to_string()))?;
 
     let stdout = Some(String::from_utf8_lossy(&output.stdout).into_owned());
     let stderr = Some(String::from_utf8_lossy(&output.stderr).into_owned());
+
+    if should_debug_log().unwrap_or(false) {
+        println!("Stdout:\n{}", stdout.as_deref().unwrap_or("None"));
+        println!();
+        println!("Stderr:\n{}", stderr.as_deref().unwrap_or("None"));
+        println!();
+    }
 
     let evaluation = if output.status.success() {
         TestStatus::Success
