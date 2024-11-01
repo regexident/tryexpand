@@ -54,6 +54,124 @@ mod expand {
     }
 }
 
+mod check {
+    use super::*;
+
+    const PASS_PATTERN: &str = "tests/check/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/check/fail/*.rs";
+    const UNMATCHED_PATTERN: &str = super::UNMATCHED_PATTERN;
+
+    #[test]
+    pub fn pass() {
+        tryexpand::check([PASS_PATTERN]);
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::check([FAIL_PATTERN]).skip_overwrite();
+    }
+
+    #[test]
+    pub fn expect_fail() {
+        tryexpand::check([FAIL_PATTERN]).expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::check([PASS_PATTERN])
+            .skip_overwrite()
+            .expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "no file patterns provided")]
+    pub fn no_paths_provided() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::check(EMPTY_PATTERNS).skip_overwrite();
+    }
+
+    #[test]
+    #[should_panic(expected = "no matching files found for:\n    no/matches/for/this/path")]
+    pub fn no_files_found() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::check([PASS_PATTERN, UNMATCHED_PATTERN]).skip_overwrite();
+    }
+}
+
+mod run {
+    const PASS_PATTERN: &str = "tests/run/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/run/fail/*.rs";
+
+    #[test]
+    pub fn expect_pass() {
+        tryexpand::run([PASS_PATTERN]);
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::run([FAIL_PATTERN]).skip_overwrite();
+    }
+
+    #[test]
+    pub fn expect_fail() {
+        tryexpand::run([FAIL_PATTERN]).expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::run([PASS_PATTERN])
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
+mod run_tests {
+    const PASS_PATTERN: &str = "tests/run_tests/pass/*.rs";
+    const FAIL_PATTERN: &str = "tests/run_tests/fail/*.rs";
+
+    #[test]
+    pub fn expect_pass() {
+        tryexpand::run_tests([PASS_PATTERN]);
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_pass() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::run_tests([FAIL_PATTERN]).skip_overwrite();
+    }
+
+    #[test]
+    pub fn expect_fail() {
+        tryexpand::run_tests([FAIL_PATTERN]).expect_fail();
+    }
+
+    #[test]
+    #[should_panic(expected = "tests failed")]
+    pub fn verify_expect_fail() {
+        // We need to test with .skip_overwrite()
+        // to avoid overwriting snapshots of `pass()`:
+        tryexpand::run_tests([PASS_PATTERN])
+            .skip_overwrite()
+            .expect_fail();
+    }
+}
+
 mod and_check {
     const PASS_PATTERN: &str = "tests/and_check/pass/*.rs";
     const FAIL_PATTERN: &str = "tests/and_check/fail/*.rs";
