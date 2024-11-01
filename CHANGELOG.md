@@ -20,17 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `struct BuildTestSuite`.
-- Added `struct ExpandTestSuite`.
-- Added `fn check(…) -> BuildTestSuite` crate-level function.
-- Added `fn run(…) -> BuildTestSuite` crate-level function.
-- Added `fn run_tests(…) -> BuildTestSuite` crate-level function.
+- n/a
 
 ### Changed
 
-- Changed return type of `fn expand(…)` crate-level function from `-> TestSuite` to `-> ExpandTestSuite`.
-- Updated dependencies:
-  - `regex` from `1.10.3` to `1.11.1`
+- n/a
 
 ### Deprecated
 
@@ -38,7 +32,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Removed
 
-- Removed `struct TestSuite` (by marking it as `pub(crate)`).
+- n/a
 
 ### Fixed
 
@@ -55,6 +49,26 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.9.0] - 2024-11-01
+
+### Added
+
+- Added `struct BuildTestSuite`.
+- Added `struct ExpandTestSuite`.
+- Added `fn check(…) -> BuildTestSuite` crate-level function.
+- Added `fn run(…) -> BuildTestSuite` crate-level function.
+- Added `fn run_tests(…) -> BuildTestSuite` crate-level function.
+
+### Changed
+
+- Changed return type of `fn expand(…)` crate-level function from `-> TestSuite` to `-> ExpandTestSuite`.
+- Updated dependencies:
+  - `regex` from `1.10.3` to `1.11.1`
+
+### Removed
+
+- Removed `struct TestSuite` (by marking it as `pub(crate)`).
 
 ## [0.8.4] - 2024-05-24
 
