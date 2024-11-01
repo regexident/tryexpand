@@ -13,12 +13,18 @@
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": ["*"],
       "allowedVersions": "!/^=/",
       "groupName": "crate dependencies",
       "groupSlug": "dependencies",
-      "matchManagers": ["cargo"],
-      "schedule": ["before 2am on Monday"]
+      "matchManagers": [
+        "cargo"
+      ],
+      "schedule": [
+        "before 2am on Monday"
+      ],
+      "matchPackageNames": [
+        "*"
+      ]
     }
   ]
 }
