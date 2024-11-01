@@ -29,6 +29,8 @@ Please make sure to add your changes to the appropriate categories:
 ### Changed
 
 - Changed return type of `fn expand(…)` crate-level function from `-> TestSuite` to `-> ExpandTestSuite`.
+- Updated dependencies:
+  - `regex` from `1.10.3` to `1.11.1`
 
 ### Deprecated
 
