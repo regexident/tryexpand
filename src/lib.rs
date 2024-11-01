@@ -26,9 +26,13 @@ pub(crate) const OUT_RS_FILE_SUFFIX: &str = "out.rs";
 pub(crate) const OUT_TXT_FILE_SUFFIX: &str = "out.txt";
 pub(crate) const ERR_TXT_FILE_SUFFIX: &str = "err.txt";
 
-use crate::test_suite::TestSuite;
+use crate::{
+    test::Action,
+    test_suite::{BuildTestSuite, ExpandTestSuite, TestSuite},
+};
 
-/// Attempts to expand macros in files that match the provided paths/glob patterns.
+/// Run snapshot tests on files that match the provided paths/glob patterns,
+/// snapshotting the source code as it is produced by `cargo expand`.
 ///
 /// # Examples
 ///
@@ -63,18 +67,171 @@ use crate::test_suite::TestSuite;
 ///     )
 ///     .args(["--features", "test-feature"])
 ///     .envs([("MY_ENV", "my env var value")])
-///     .and_check() // type-check the expanded code
+///     .and_check() // also type-check the code on successful macro-expansion
 ///     .expect_pass();
 /// }
 /// ```
 #[track_caller] // LOAD-BEARING, DO NOT REMOVE!
-pub fn expand<I, P>(patterns: I) -> TestSuite
+pub fn expand<I, P>(patterns: I) -> ExpandTestSuite
 where
     I: IntoIterator<Item = P>,
     P: AsRef<Path>,
 {
-    match TestSuite::new(patterns, Location::caller()) {
-        Ok(test_suite) => test_suite,
+    match TestSuite::new(patterns, Action::Expand, Location::caller()) {
+        Ok(test_suite) => ExpandTestSuite(test_suite),
+        Err(err) => panic!("Error: {err:?}"),
+    }
+}
+
+/// Run snapshot tests on files that match the provided paths/glob patterns,
+/// snapshotting the stdout/stderr output as it is produced by `cargo check [ARGS]`.
+///
+/// # Examples
+///
+/// Simple:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::check(
+///         ["tests/expand/pass/*.rs"]
+///     ).expect_pass();
+/// }
+///
+/// #[test]
+/// pub fn fail() {
+///     tryexpand::check(
+///         ["tests/expand/fail/*.rs"]
+///     ).expect_fail();
+/// }
+/// ```
+///
+/// Advanced:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::check(
+///         [
+///             "tests/expand/foo/pass/*.rs",
+///             "tests/expand/bar/pass/*.rs"
+///         ]
+///     )
+///     .args(["--features", "test-feature"])
+///     .envs([("MY_ENV", "my env var value")])
+///     .expect_pass();
+/// }
+/// ```
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+pub fn check<I, P>(patterns: I) -> BuildTestSuite
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    match TestSuite::new(patterns, Action::Check, Location::caller()) {
+        Ok(test_suite) => BuildTestSuite(test_suite),
+        Err(err) => panic!("Error: {err:?}"),
+    }
+}
+
+/// Run snapshot tests on files that match the provided paths/glob patterns,
+/// snapshotting the stdout/stderr output as it is produced by `cargo run [ARGS]`.
+///
+/// # Examples
+///
+/// Simple:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::run(
+///         ["tests/expand/pass/*.rs"]
+///     ).expect_pass();
+/// }
+///
+/// #[test]
+/// pub fn fail() {
+///     tryexpand::run(
+///         ["tests/expand/fail/*.rs"]
+///     ).expect_fail();
+/// }
+/// ```
+///
+/// Advanced:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::run(
+///         [
+///             "tests/expand/foo/pass/*.rs",
+///             "tests/expand/bar/pass/*.rs"
+///         ]
+///     )
+///     .args(["--features", "test-feature"])
+///     .envs([("MY_ENV", "my env var value")])
+///     .expect_pass();
+/// }
+/// ```
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+pub fn run<I, P>(patterns: I) -> BuildTestSuite
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    match TestSuite::new(patterns, Action::Run, Location::caller()) {
+        Ok(test_suite) => BuildTestSuite(test_suite),
+        Err(err) => panic!("Error: {err:?}"),
+    }
+}
+
+/// Run snapshot tests on files that match the provided paths/glob patterns,
+/// snapshotting the stdout/stderr output as it is produced by `cargo test [ARGS]`.
+///
+/// # Examples
+///
+/// Simple:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::run_tests(
+///         ["tests/expand/pass/*.rs"]
+///     ).expect_pass();
+/// }
+///
+/// #[test]
+/// pub fn fail() {
+///     tryexpand::run_tests(
+///         ["tests/expand/fail/*.rs"]
+///     ).expect_fail();
+/// }
+/// ```
+///
+/// Advanced:
+///
+/// ```
+/// #[test]
+/// pub fn pass() {
+///     tryexpand::run_tests(
+///         [
+///             "tests/expand/foo/pass/*.rs",
+///             "tests/expand/bar/pass/*.rs"
+///         ]
+///     )
+///     .args(["--features", "test-feature"])
+///     .envs([("MY_ENV", "my env var value")])
+///     .expect_pass();
+/// }
+/// ```
+#[track_caller] // LOAD-BEARING, DO NOT REMOVE!
+pub fn run_tests<I, P>(patterns: I) -> BuildTestSuite
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Path>,
+{
+    match TestSuite::new(patterns, Action::Test, Location::caller()) {
+        Ok(test_suite) => BuildTestSuite(test_suite),
         Err(err) => panic!("Error: {err:?}"),
     }
 }

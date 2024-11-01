@@ -20,11 +20,15 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Added `struct BuildTestSuite`.
+- Added `struct ExpandTestSuite`.
+- Added `fn check(…) -> BuildTestSuite` crate-level function.
+- Added `fn run(…) -> BuildTestSuite` crate-level function.
+- Added `fn run_tests(…) -> BuildTestSuite` crate-level function.
 
 ### Changed
 
-- n/a
+- Changed return type of `fn expand(…)` crate-level function from `-> TestSuite` to `-> ExpandTestSuite`.
 
 ### Deprecated
 
@@ -32,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Removed
 
-- n/a
+- Removed `struct TestSuite` (by marking it as `pub(crate)`).
 
 ### Fixed
 
