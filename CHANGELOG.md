@@ -24,6 +24,40 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
+- n/a
+
+### Deprecated
+
+- n/a
+
+### Removed
+
+- n/a
+
+### Fixed
+
+- n/a
+
+### Performance
+
+- n/a
+
+### Security
+
+- n/a
+
+### Other
+
+- n/a
+
+## [0.9.1] - 2024-11-01
+
+### Added
+
+- Added `TRYEXPAND_DEBUG_LOG` CLI option for turning on debug logging (use with `-- --nocapture` for optimal results).
+
+### Changed
+
 - Stopped overriding `CARGO_TARGET_DIR` (you can still opt-in via `.env("CARGO_TARGET_DIR", "…")`) (see ###Fixed).
 
 ### Deprecated
@@ -41,14 +75,6 @@ Please make sure to add your changes to the appropriate categories:
 ### Performance
 
 - Due to no longer using the same `CARGO_TARGET_DIR` for all tests (even across test groups) there may be some (hopefully minor) performance regressions for some projects.
-
-### Security
-
-- n/a
-
-### Other
-
-- n/a
 
 ## [0.9.0] - 2024-11-01
 
