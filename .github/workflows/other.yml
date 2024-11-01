@@ -1,0 +1,19 @@
+name: Other
+
+on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main, "**"]
+      paths-ignore:
+        - "CHANGELOG.md"
+
+jobs:
+  validate-renovate:
+    name: Validate Renovate's Config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate Config
+        uses: rinchsan/renovate-config-validator@main
