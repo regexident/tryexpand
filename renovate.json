@@ -1,17 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
+    ":approveMajorUpdates",
+    ":dependencyDashboard",
+    ":ignoreModulesAndTests",
+    ":ignoreUnstable",
+    ":preserveSemverRanges",
+    ":separateMajorReleases",
     "config:recommended",
-    ":disableDependencyDashboard"
+    "replacements:all",
+    "workarounds:all"
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": [
-        "*"
-      ],
+      "matchPackagePatterns": ["*"],
       "allowedVersions": "!/^=/",
-      "groupName": "dependencies",
-      "groupSlug": "dependencies"
+      "groupName": "crate dependencies",
+      "groupSlug": "dependencies",
+      "matchManagers": ["cargo"],
+      "schedule": ["before 2am on Monday"]
     }
   ]
 }
