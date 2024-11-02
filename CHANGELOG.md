@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Re-introduced overriding of `CARGO_TARGET_DIR`, but using parent crate's `CARGO_TARGET_DIR`.
+- n/a
 
 ### Changed
 
@@ -36,11 +36,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- Fixed a bug (by no longer passing `--tests` to `cargo check`) that would sometimes cause errors of individual files to get wrongly reported all bundled together.
+- n/a
 
 ### Performance
 
-- Reversed the minor performance regression introduced in `0.9.1`.
+- n/a
 
 ### Security
 
@@ -49,6 +49,20 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.9.2] - 2024-11-02
+
+### Added
+
+- Re-introduced overriding of `CARGO_TARGET_DIR`, but using parent crate's `CARGO_TARGET_DIR`.
+
+### Fixed
+
+- Fixed a bug (by no longer passing `--tests` to `cargo check`) that would sometimes cause errors of individual files to get wrongly reported all bundled together.
+
+### Performance
+
+- Reversed the minor performance regression introduced in `0.9.1`.
 
 ## [0.9.1] - 2024-11-01
 
