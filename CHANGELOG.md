@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `TRYEXPAND_DEBUG_LOG` CLI option for turning on debug logging (use with `-- --nocapture` for optimal results).
+- n/a
 
 ### Changed
 
