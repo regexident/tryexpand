@@ -36,7 +36,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Fixed
 
-- n/a
+- Fixed a bug (by no longer passing `--tests` to `cargo check`) that would sometimes cause errors of individual files to get wrongly reported all bundled together.
 
 ### Performance
 
