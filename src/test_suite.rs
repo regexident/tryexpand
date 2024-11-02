@@ -225,7 +225,9 @@ impl TestSuite {
             .find(|package| package.name == crate_name)
             .ok_or_else(|| Error::CargoPackageNotFound)?;
 
-        let target_dir = metadata.target_directory.as_std_path().to_owned();
+        let target_dir = env::var("CARGO_TARGET_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| metadata.target_directory.as_std_path().to_owned());
 
         let tests = Self::tests_for(&crate_name, paths);
 
