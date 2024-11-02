@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Re-introduced overriding of `CARGO_TARGET_DIR`, but using parent crate's `CARGO_TARGET_DIR`.
 
 ### Changed
 
@@ -40,7 +40,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Performance
 
-- n/a
+- Reversed the minor performance regression introduced in `0.9.1`.
 
 ### Security
 
