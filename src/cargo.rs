@@ -117,7 +117,6 @@ pub(crate) fn check(project: &Project, test: &Test, options: &Options) -> Result
         .arg("check")
         .arg("--bin")
         .arg(&test.bin)
-        .arg("--tests")
         .arg("--color")
         .arg("never");
 
