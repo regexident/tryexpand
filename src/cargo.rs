@@ -294,10 +294,10 @@ pub(crate) fn build_dependencies(project: &Project) -> Result<()> {
     let _ = writeln!(std::io::stdout());
 
     let stdout = cargo(project)
-        .arg("expand")
+        .arg("check")
         .arg("--lib")
-        .arg("--theme")
-        .arg("none")
+        .arg("--color")
+        .arg("never")
         .stdout(std::process::Stdio::piped())
         .spawn()
         .map_err(Error::SpawningProcessFailed)?
