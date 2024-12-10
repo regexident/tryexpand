@@ -21,3 +21,4 @@ error[E0277]: cannot add `&str` to `{integer}`
   = note: this error originates in the macro `produce_invalid_code` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 For more information about this error, try `rustc --explain E0277`.
+error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error

@@ -1,5 +1,6 @@
 running 1 test
-F
+failing_test --- FAILED
+
 failures:
 
 ---- failing_test stdout ----

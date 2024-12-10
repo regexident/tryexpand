@@ -3,3 +3,4 @@ error: cannot find macro `non_existent_macro` in this scope
   |
 2 |     non_existent_macro!();
   |     ^^^^^^^^^^^^^^^^^^
+error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error

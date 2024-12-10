@@ -3,3 +3,4 @@ error: cannot find derive macro `NonExistentMacro` in this scope
   |
 1 | #[derive(NonExistentMacro)]
   |          ^^^^^^^^^^^^^^^^
+error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error
