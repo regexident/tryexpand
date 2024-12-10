@@ -223,7 +223,7 @@ impl TestSuite {
             .packages
             .iter()
             .find(|package| package.name == crate_name)
-            .ok_or_else(|| Error::CargoPackageNotFound)?;
+            .ok_or(Error::CargoPackageNotFound)?;
 
         let target_dir = env::var("CARGO_TARGET_DIR")
             .map(PathBuf::from)
