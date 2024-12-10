@@ -5,3 +5,4 @@ error: proc macro panicked
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = help: message: test
+error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error

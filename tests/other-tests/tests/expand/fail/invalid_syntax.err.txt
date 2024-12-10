@@ -3,3 +3,4 @@ error: expected one of `!` or `::`, found `ipsum`
   |
 1 | lorem ipsum dolor sit amet.
   |       ^^^^^ expected one of `!` or `::`
+error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error
