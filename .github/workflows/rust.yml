@@ -41,7 +41,7 @@ jobs:
           toolchain: 1.78.0
           components: rust-src
       - run: cargo test --release
-      - uses: cargo-bins/cargo-binstall@v1.10.20
+      - uses: cargo-bins/cargo-binstall@v1.10.22
       - run: cargo binstall cargo-expand --no-confirm
       - run: cargo test
       - run: cargo test --manifest-path tests/other-tests/Cargo.toml -- --test-threads=1
