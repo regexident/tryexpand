@@ -26,6 +26,8 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `thiserror` from `1.0.58` to `2.0.0`
+  - `cargo_metadata` from `0.18.1` to `0.19.0`
+  - `cargo_toml` from `0.20.0` to `0.21.0`
 
 ### Deprecated
 
