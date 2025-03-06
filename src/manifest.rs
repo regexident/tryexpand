@@ -33,6 +33,7 @@ where
         SourceEdition::E2015 => Inheritable::Set(Edition::E2015),
         SourceEdition::E2018 => Inheritable::Set(Edition::E2018),
         SourceEdition::E2021 => Inheritable::Set(Edition::E2021),
+        SourceEdition::E2024 => Inheritable::Set(Edition::E2024),
         edition => {
             return Err(Error::UnsupportedRustEdition {
                 edition: edition.to_string(),
