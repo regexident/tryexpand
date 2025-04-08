@@ -449,7 +449,7 @@ fn lines_bounded<'a>(
         return (lines, 0, None);
     }
 
-    let split_index = (max_lines + 1) / 2;
+    let split_index = max_lines.div_ceil(2);
     let infix_len = lines.len() - max_lines;
 
     let prefix = &lines[..split_index];
