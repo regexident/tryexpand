@@ -141,7 +141,7 @@ where
         metadata: None,
         resolver: None,
         dependencies: BTreeMap::default(),
-        lints: None,
+        lints: BTreeMap::default(),
     };
 
     #[allow(deprecated)]
