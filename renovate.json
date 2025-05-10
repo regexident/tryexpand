@@ -13,6 +13,14 @@
   ],
   "packageRules": [
     {
+      "extends": ["schedule:monthly"],
+      "groupName": "github actions",
+      "groupSlug": "actions",
+      "matchManagers": [
+        "github-actions"
+      ]
+    },
+    {
       "allowedVersions": "!/^=/",
       "groupName": "crate dependencies",
       "groupSlug": "dependencies",
