@@ -20,14 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added support for Rust edition "2024"
+- n/a
 
 ### Changed
 
-- Updated dependencies:
-  - `thiserror` from `1.0.58` to `2.0.0`
-  - `cargo_metadata` from `0.18.1` to `0.19.2`
-  - `cargo_toml` from `0.20.0` to `0.22.0`
+- n/a
 
 ### Deprecated
 
@@ -52,6 +49,19 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.10.0] - 2025-05-10
+
+### Added
+
+- Added support for Rust edition "2024"
+
+### Changed
+
+- Updated dependencies:
+  - `thiserror` from `1.0.58` to `2.0.0`
+  - `cargo_metadata` from `0.18.1` to `0.19.2`
+  - `cargo_toml` from `0.20.0` to `0.22.0`
 
 ## [0.9.2] - 2024-11-02
 
