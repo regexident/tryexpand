@@ -23,7 +23,7 @@ version = "0.10.0"
 [dependencies]
 base62 = "2.0.2"
 basic-toml = "0.1"
-cargo_metadata = "0.19.2"
+cargo_metadata = "0.20.0"
 cargo_toml = "0.22.0"
 diff = "0.1"
 glob = "0.3"
