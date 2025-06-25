@@ -24,7 +24,9 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Updated dependencies:
+  - `cargo_metadata` from `0.19.2` to `0.20.0`
+- Bumped MSRV from `0.78.0` to `0.82.0`.
 
 ### Deprecated
 
