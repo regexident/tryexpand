@@ -58,7 +58,7 @@ where
     let dependency_name = source_package.name.clone();
 
     dependencies.insert(
-        dependency_name.to_owned(),
+        dependency_name.to_string(),
         Dependency::Detailed(Box::new(dependency)),
     );
 
