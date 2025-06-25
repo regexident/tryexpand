@@ -216,13 +216,13 @@ impl TestSuite {
 
         let crate_name = env::var("CARGO_PKG_NAME")
             .ok()
-            .or_else(|| metadata.root_package().map(|pkg| pkg.name.clone()))
+            .or_else(|| metadata.root_package().map(|pkg| pkg.name.to_string()))
             .ok_or(Error::CargoPkgName)?;
 
         let package = metadata
             .packages
             .iter()
-            .find(|package| package.name == crate_name)
+            .find(|package| package.name.as_str() == crate_name)
             .ok_or(Error::CargoPackageNotFound)?;
 
         let target_dir = env::var("CARGO_TARGET_DIR")
