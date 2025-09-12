@@ -1,1 +1,1 @@
-error: none of the selected packages contains these features: placebo-feature
+error: the package '<CRATE>' does not contain this feature: placebo-feature

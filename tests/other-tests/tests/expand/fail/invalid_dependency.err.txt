@@ -2,6 +2,8 @@ error[E0432]: unresolved import `http`
  --> /tests/expand/fail/invalid_dependency.rs:5:5
   |
 5 | use http::Request;
-  |     ^^^^ use of undeclared crate or module `http`
+  |     ^^^^ use of unresolved module or unlinked crate `http`
+  |
+  = help: if you wanted to use a crate named `http`, use `cargo add http` to add it to your `Cargo.toml`
 For more information about this error, try `rustc --explain E0432`.
 error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error
