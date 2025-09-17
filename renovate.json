@@ -1,38 +1,33 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    ":approveMajorUpdates",
-    ":dependencyDashboard",
-    ":ignoreModulesAndTests",
-    ":ignoreUnstable",
-    ":preserveSemverRanges",
-    ":separateMajorReleases",
-    "config:recommended",
-    "replacements:all",
-    "workarounds:all"
-  ],
-  "packageRules": [
-    {
-      "extends": ["schedule:monthly"],
-      "groupName": "github actions",
-      "groupSlug": "actions",
-      "matchManagers": [
-        "github-actions"
-      ]
-    },
-    {
-      "allowedVersions": "!/^=/",
-      "groupName": "crate dependencies",
-      "groupSlug": "dependencies",
-      "matchManagers": [
-        "cargo"
-      ],
-      "schedule": [
-        "before 2am on Monday"
-      ],
-      "matchPackageNames": [
-        "*"
-      ]
-    }
-  ]
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
+    "packageRules": [
+        {
+            "allowedVersions": "!/^=/",
+            "groupName": "dependencies",
+            "groupSlug": "dependencies",
+            "matchDepTypes": ["dependencies"],
+            "matchPackageNames": ["*"]
+        },
+        {
+            "allowedVersions": "!/^=/",
+            "groupName": "dev-dependencies",
+            "groupSlug": "dev-dependencies",
+            "matchDepTypes": ["dev-dependencies"],
+            "matchPackageNames": ["*"]
+        },
+        {
+            "extends": ["schedule:automergeMonthly"],
+            "groupName": "cargo-binstall",
+            "groupSlug": "cargo-binstall",
+            "matchPackageNames": ["cargo-binstall"],
+            "automerge": true
+        },
+        {
+            "groupName": "github actions",
+            "groupSlug": "github-actions",
+            "matchDepTypes": ["action"],
+            "pinDigests": true
+        }
+    ]
 }
