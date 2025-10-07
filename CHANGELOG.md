@@ -24,8 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Updated dependencies:
-  - `cargo_metadata` from `0.22.0` to `0.23.0`
+- n/a
 
 ### Deprecated
 
@@ -50,6 +49,13 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.12.1] - 2025-10-07
+
+### Changed
+
+- Updated dependencies:
+  - `cargo_metadata` from `0.22.0` to `0.23.0`
 
 ## [0.12.0] - 2025-09-12
 
