@@ -20,11 +20,11 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- Added `filter_stdout()` and `filter_stderr()` methods for regex-based output filtering
+- n/a
 
 ### Changed
 
-- Bumped MSRV from `1.86.0` to `1.88.0`.
+- n/a
 
 ### Deprecated
 
@@ -49,6 +49,16 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.13.0] - 2025-12-15
+
+### Added
+
+- Added `filter_stdout()` and `filter_stderr()` methods for regex-based output filtering
+
+### Changed
+
+- Bumped MSRV from `1.86.0` to `1.88.0`.
 
 ## [0.12.1] - 2025-10-07
 
