@@ -18,19 +18,59 @@ use crate::{
     TRYEXPAND_ENV_KEY, TRYEXPAND_ENV_VAL_EXPECT, TRYEXPAND_ENV_VAL_OVERWRITE,
 };
 
+/// A completed test suite where all tests passed.
+///
+/// This type is returned by [`ExpandTestSuite::expect_pass`] or [`BuildTestSuite::expect_pass`]
+/// after successfully running all tests.
+///
+/// This is a marker type that serves as proof that the tests completed successfully.
+/// It has no public methods and simply indicates successful test execution.
 pub struct TestSuitePass {
     #[allow(dead_code)]
     test_suite: TestSuite,
 }
 
+/// A completed test suite where all tests failed as expected.
+///
+/// This type is returned by [`ExpandTestSuite::expect_fail`] or [`BuildTestSuite::expect_fail`]
+/// after successfully running all tests that were expected to fail.
+///
+/// This is a marker type that serves as proof that the tests completed as expected (with failures).
+/// It has no public methods and simply indicates successful test execution of failing cases.
 pub struct TestSuiteFail {
     #[allow(dead_code)]
     test_suite: TestSuite,
 }
 
+/// A test suite builder for macro expansion tests created by [`crate::expand`].
+///
+/// This type provides methods to configure how tests are run and what happens after expansion.
+/// Use the builder pattern to chain configuration methods before calling
+/// [`expect_pass`](Self::expect_pass) or [`expect_fail`](Self::expect_fail) to execute the tests.
+///
+/// # Examples
+///
+/// ```no_run
+/// #[test]
+/// fn test_expansion() {
+///     tryexpand::expand(["tests/expand/*.rs"])
+///         .args(["--features", "test-feature"])
+///         .and_check()
+///         .expect_pass();
+/// }
+/// ```
 pub struct ExpandTestSuite(pub(crate) TestSuite);
 
 impl ExpandTestSuite {
+    /// Adds a single argument to pass to `cargo expand`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .arg("--verbose")
+    ///     .expect_pass();
+    /// ```
     pub fn arg<T>(self, arg: T) -> Self
     where
         T: AsRef<str>,
@@ -38,6 +78,15 @@ impl ExpandTestSuite {
         Self(self.0.arg(arg))
     }
 
+    /// Adds multiple arguments to pass to `cargo expand`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .args(["--features", "test-feature"])
+    ///     .expect_pass();
+    /// ```
     pub fn args<T, I>(self, args: I) -> Self
     where
         T: AsRef<str>,
@@ -46,6 +95,15 @@ impl ExpandTestSuite {
         Self(self.0.args(args))
     }
 
+    /// Sets an environment variable for the test execution.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .env("MY_VAR", "value")
+    ///     .expect_pass();
+    /// ```
     pub fn env<K, V>(self, key: K, value: V) -> Self
     where
         K: AsRef<str>,
@@ -54,6 +112,15 @@ impl ExpandTestSuite {
         Self(self.0.env(key, value))
     }
 
+    /// Sets multiple environment variables for the test execution.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .envs([("VAR1", "value1"), ("VAR2", "value2")])
+    ///     .expect_pass();
+    /// ```
     pub fn envs<K, V, I>(self, envs: I) -> Self
     where
         K: AsRef<str>,
@@ -63,10 +130,38 @@ impl ExpandTestSuite {
         Self(self.0.envs(envs))
     }
 
+    /// Prevents overwriting existing snapshot files even when `TRYEXPAND=overwrite` is set.
+    ///
+    /// This is useful when you want to preserve specific snapshots while allowing
+    /// others to be updated during test runs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .skip_overwrite()
+    ///     .expect_pass();
+    /// ```
     pub fn skip_overwrite(self) -> Self {
         Self(self.0.skip_overwrite())
     }
 
+    /// Applies a regex filter to normalize stdout output before snapshotting.
+    ///
+    /// This is useful for removing non-deterministic content like timestamps or paths
+    /// from the expanded output.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the regex pattern is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .filter_stdout(r"/path/to/\S+", "/path/to/file")
+    ///     .expect_pass();
+    /// ```
     pub fn filter_stdout<P, R>(self, pattern: P, replacement: R) -> Self
     where
         P: AsRef<str>,
@@ -75,6 +170,22 @@ impl ExpandTestSuite {
         Self(self.0.filter_stdout(pattern, replacement))
     }
 
+    /// Applies a regex filter to normalize stderr output before snapshotting.
+    ///
+    /// This is useful for removing non-deterministic content like timestamps or paths
+    /// from error messages.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the regex pattern is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .filter_stderr(r"thread '\S+'", "thread 'test'")
+    ///     .expect_pass();
+    /// ```
     pub fn filter_stderr<P, R>(self, pattern: P, replacement: R) -> Self
     where
         P: AsRef<str>,
@@ -83,30 +194,129 @@ impl ExpandTestSuite {
         Self(self.0.filter_stderr(pattern, replacement))
     }
 
+    /// Adds a type-checking step after macro expansion.
+    ///
+    /// After expanding macros, this will run `cargo check` on the expanded code
+    /// and snapshot the compiler output.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .and_check()
+    ///     .expect_pass();
+    /// ```
     pub fn and_check(self) -> BuildTestSuite {
         BuildTestSuite(self.0.and_check())
     }
 
+    /// Adds a run step after macro expansion.
+    ///
+    /// After expanding macros, this will run `cargo run` on the expanded code
+    /// and snapshot the program output.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .and_run()
+    ///     .expect_pass();
+    /// ```
     pub fn and_run(self) -> BuildTestSuite {
         BuildTestSuite(self.0.and_run())
     }
 
+    /// Adds a test execution step after macro expansion.
+    ///
+    /// After expanding macros, this will run `cargo test` on the expanded code
+    /// and snapshot the test output.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::expand(["tests/*.rs"])
+    ///     .and_run_tests()
+    ///     .expect_pass();
+    /// ```
     pub fn and_run_tests(self) -> BuildTestSuite {
         BuildTestSuite(self.0.and_run_tests())
     }
 
+    /// Expects all tests to pass (macro expansion succeeds).
+    ///
+    /// This consumes the test suite and executes all tests, expecting successful
+    /// macro expansion and matching snapshots.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any test fails or if snapshots don't match.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// #[test]
+    /// fn pass() {
+    ///     tryexpand::expand(["tests/pass/*.rs"])
+    ///         .expect_pass();
+    /// }
+    /// ```
     pub fn expect_pass(self) -> TestSuitePass {
         self.0.expect_pass()
     }
 
+    /// Expects all tests to fail (macro expansion produces errors).
+    ///
+    /// This consumes the test suite and executes all tests, expecting macro expansion
+    /// to fail and produce error output that matches the snapshots.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any test unexpectedly passes or if error snapshots don't match.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// #[test]
+    /// fn fail() {
+    ///     tryexpand::expand(["tests/fail/*.rs"])
+    ///         .expect_fail();
+    /// }
+    /// ```
     pub fn expect_fail(self) -> TestSuiteFail {
         self.0.expect_fail()
     }
 }
 
+/// A test suite builder for build/run/test operations created by
+/// [`crate::check`], [`crate::run`], [`crate::run_tests`], or by calling
+/// [`ExpandTestSuite::and_check`], [`ExpandTestSuite::and_run`], or
+/// [`ExpandTestSuite::and_run_tests`].
+///
+/// This type provides methods to configure how tests are run before calling
+/// [`expect_pass`](Self::expect_pass) or [`expect_fail`](Self::expect_fail) to execute the tests.
+///
+/// # Examples
+///
+/// ```no_run
+/// #[test]
+/// fn test_check() {
+///     tryexpand::check(["tests/check/*.rs"])
+///         .args(["--features", "test-feature"])
+///         .expect_pass();
+/// }
+/// ```
 pub struct BuildTestSuite(pub(crate) TestSuite);
 
 impl BuildTestSuite {
+    /// Adds a single argument to pass to the cargo command (`check`, `run`, or `test`).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::check(["tests/*.rs"])
+    ///     .arg("--verbose")
+    ///     .expect_pass();
+    /// ```
     pub fn arg<T>(self, arg: T) -> Self
     where
         T: AsRef<str>,
@@ -114,6 +324,15 @@ impl BuildTestSuite {
         Self(self.0.arg(arg))
     }
 
+    /// Adds multiple arguments to pass to the cargo command.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::run(["tests/*.rs"])
+    ///     .args(["--features", "test-feature"])
+    ///     .expect_pass();
+    /// ```
     pub fn args<T, I>(self, args: I) -> Self
     where
         T: AsRef<str>,
@@ -122,6 +341,15 @@ impl BuildTestSuite {
         Self(self.0.args(args))
     }
 
+    /// Sets an environment variable for the test execution.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::run(["tests/*.rs"])
+    ///     .env("MY_VAR", "value")
+    ///     .expect_pass();
+    /// ```
     pub fn env<K, V>(self, key: K, value: V) -> Self
     where
         K: AsRef<str>,
@@ -130,6 +358,15 @@ impl BuildTestSuite {
         Self(self.0.env(key, value))
     }
 
+    /// Sets multiple environment variables for the test execution.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::run_tests(["tests/*.rs"])
+    ///     .envs([("VAR1", "value1"), ("VAR2", "value2")])
+    ///     .expect_pass();
+    /// ```
     pub fn envs<K, V, I>(self, envs: I) -> Self
     where
         K: AsRef<str>,
@@ -139,10 +376,38 @@ impl BuildTestSuite {
         Self(self.0.envs(envs))
     }
 
+    /// Prevents overwriting existing snapshot files even when `TRYEXPAND=overwrite` is set.
+    ///
+    /// This is useful when you want to preserve specific snapshots while allowing
+    /// others to be updated during test runs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::check(["tests/*.rs"])
+    ///     .skip_overwrite()
+    ///     .expect_pass();
+    /// ```
     pub fn skip_overwrite(self) -> Self {
         Self(self.0.skip_overwrite())
     }
 
+    /// Applies a regex filter to normalize stdout output before snapshotting.
+    ///
+    /// This is useful for removing non-deterministic content like timestamps or paths
+    /// from the program output.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the regex pattern is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::run(["tests/*.rs"])
+    ///     .filter_stdout(r"\d{4}-\d{2}-\d{2}", "YYYY-MM-DD")
+    ///     .expect_pass();
+    /// ```
     pub fn filter_stdout<P, R>(self, pattern: P, replacement: R) -> Self
     where
         P: AsRef<str>,
@@ -151,6 +416,22 @@ impl BuildTestSuite {
         Self(self.0.filter_stdout(pattern, replacement))
     }
 
+    /// Applies a regex filter to normalize stderr output before snapshotting.
+    ///
+    /// This is useful for removing non-deterministic content like timestamps or paths
+    /// from error messages.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the regex pattern is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// tryexpand::check(["tests/*.rs"])
+    ///     .filter_stderr(r"thread '\S+'", "thread 'test'")
+    ///     .expect_pass();
+    /// ```
     pub fn filter_stderr<P, R>(self, pattern: P, replacement: R) -> Self
     where
         P: AsRef<str>,
@@ -159,10 +440,46 @@ impl BuildTestSuite {
         Self(self.0.filter_stderr(pattern, replacement))
     }
 
+    /// Expects all tests to pass.
+    ///
+    /// This consumes the test suite and executes all tests, expecting the cargo
+    /// command to succeed and snapshots to match.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any test fails or if snapshots don't match.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// #[test]
+    /// fn pass() {
+    ///     tryexpand::check(["tests/pass/*.rs"])
+    ///         .expect_pass();
+    /// }
+    /// ```
     pub fn expect_pass(self) -> TestSuitePass {
         self.0.expect_pass()
     }
 
+    /// Expects all tests to fail.
+    ///
+    /// This consumes the test suite and executes all tests, expecting the cargo
+    /// command to fail and produce error output that matches the snapshots.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any test unexpectedly passes or if error snapshots don't match.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// #[test]
+    /// fn fail() {
+    ///     tryexpand::check(["tests/fail/*.rs"])
+    ///         .expect_fail();
+    /// }
+    /// ```
     pub fn expect_fail(self) -> TestSuiteFail {
         self.0.expect_fail()
     }
