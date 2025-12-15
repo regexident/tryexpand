@@ -1,21 +1,10 @@
 use std::borrow::Cow;
 
-use crate::{project::Project, test::Test};
-
-pub(super) fn apply_replacements<'a, 'b>(
-    string: Cow<'a, str>,
-    replacements: impl IntoIterator<Item = (&'b str, &'b str)>,
-) -> Cow<'a, str> {
-    replacements
-        .into_iter()
-        .fold(string, |string, (pattern, replacement)| {
-            if string.contains(pattern) {
-                Cow::from(string.replace(pattern, replacement))
-            } else {
-                string
-            }
-        })
-}
+use crate::{
+    options::{FilterTarget, RegexFilter},
+    project::Project,
+    test::Test,
+};
 
 pub(super) fn ensure_trailing_newline(input: Cow<str>) -> Cow<str> {
     if input.ends_with('\n') {
@@ -54,4 +43,44 @@ pub(super) fn project_info_replacements(project: &Project, test: &Test) -> [(Str
         (name, "<CRATE>".to_owned()),
         (src_path, "".to_owned()),
     ]
+}
+
+pub(super) fn apply_replacements<'a, 'b>(
+    string: Cow<'a, str>,
+    replacements: impl IntoIterator<Item = (&'b str, &'b str)>,
+) -> Cow<'a, str> {
+    replacements
+        .into_iter()
+        .fold(string, |string, (pattern, replacement)| {
+            if string.contains(pattern) {
+                Cow::from(string.replace(pattern, replacement))
+            } else {
+                string
+            }
+        })
+}
+
+/// Apply regex filters that target a specific output stream
+pub(super) fn apply_regex_replacements<'a>(
+    string: Cow<'a, str>,
+    filters: &[RegexFilter],
+    target: FilterTarget,
+) -> Cow<'a, str> {
+    filters
+        .iter()
+        .filter(|f| {
+            matches!(
+                (&f.target, &target),
+                (FilterTarget::Stdout, FilterTarget::Stdout)
+                    | (FilterTarget::Stderr, FilterTarget::Stderr)
+            )
+        })
+        .fold(string, |string, filter| {
+            Cow::from(
+                filter
+                    .pattern
+                    .replace_all(&string, filter.replacement.as_str())
+                    .into_owned(),
+            )
+        })
 }

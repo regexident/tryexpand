@@ -84,10 +84,12 @@ pub(crate) fn expand(project: &Project, test: &Test, options: &Options) -> Resul
     } = run_cargo_command(cargo, options)?;
 
     let stdout = stdout.and_then(|stdout| {
-        normalization::expand_stdout(Cow::from(stdout), project, test).map(|cow| cow.into_owned())
+        normalization::expand_stdout(Cow::from(stdout), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
     let stderr = stderr.and_then(|stderr| {
-        normalization::expand_stderr(Cow::from(stderr), project, test).map(|cow| cow.into_owned())
+        normalization::expand_stderr(Cow::from(stderr), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
 
     let evaluation = match evaluation {
@@ -128,10 +130,12 @@ pub(crate) fn check(project: &Project, test: &Test, options: &Options) -> Result
     } = run_cargo_command(cargo, options)?;
 
     let stdout = stdout.and_then(|stdout| {
-        normalization::check_stdout(Cow::from(stdout), project, test).map(|cow| cow.into_owned())
+        normalization::check_stdout(Cow::from(stdout), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
     let stderr = stderr.and_then(|stderr| {
-        normalization::check_stderr(Cow::from(stderr), project, test).map(|cow| cow.into_owned())
+        normalization::check_stderr(Cow::from(stderr), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
 
     Ok(CargoOutput {
@@ -162,10 +166,12 @@ pub(crate) fn test(project: &Project, test: &Test, options: &Options) -> Result<
     } = run_cargo_command(cargo, options)?;
 
     let stdout = stdout.and_then(|stdout| {
-        normalization::test_stdout(Cow::from(stdout), project, test).map(|cow| cow.into_owned())
+        normalization::test_stdout(Cow::from(stdout), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
     let stderr = stderr.and_then(|stderr| {
-        normalization::test_stderr(Cow::from(stderr), project, test).map(|cow| cow.into_owned())
+        normalization::test_stderr(Cow::from(stderr), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
 
     let evaluation = match evaluation {
@@ -212,10 +218,12 @@ pub(crate) fn run(project: &Project, test: &Test, options: &Options) -> Result<C
     } = run_cargo_command(cargo, options)?;
 
     let stdout = stdout.and_then(|stdout| {
-        normalization::run_stdout(Cow::from(stdout), project, test).map(|cow| cow.into_owned())
+        normalization::run_stdout(Cow::from(stdout), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
     let stderr = stderr.and_then(|stderr| {
-        normalization::run_stderr(Cow::from(stderr), project, test).map(|cow| cow.into_owned())
+        normalization::run_stderr(Cow::from(stderr), project, test, &options.filters)
+            .map(|cow| cow.into_owned())
     });
 
     Ok(CargoOutput {

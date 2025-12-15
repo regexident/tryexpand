@@ -67,6 +67,22 @@ impl ExpandTestSuite {
         Self(self.0.skip_overwrite())
     }
 
+    pub fn filter_stdout<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        Self(self.0.filter_stdout(pattern, replacement))
+    }
+
+    pub fn filter_stderr<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        Self(self.0.filter_stderr(pattern, replacement))
+    }
+
     pub fn and_check(self) -> BuildTestSuite {
         BuildTestSuite(self.0.and_check())
     }
@@ -125,6 +141,22 @@ impl BuildTestSuite {
 
     pub fn skip_overwrite(self) -> Self {
         Self(self.0.skip_overwrite())
+    }
+
+    pub fn filter_stdout<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        Self(self.0.filter_stdout(pattern, replacement))
+    }
+
+    pub fn filter_stderr<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        Self(self.0.filter_stderr(pattern, replacement))
     }
 
     pub fn expect_pass(self) -> TestSuitePass {
@@ -305,6 +337,46 @@ impl TestSuite {
 
     pub(crate) fn skip_overwrite(mut self) -> Self {
         self.options.skip_overwrite = true;
+        self
+    }
+
+    pub(crate) fn filter_stdout<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        self.add_filter(crate::options::FilterTarget::Stdout, pattern, replacement)
+    }
+
+    pub(crate) fn filter_stderr<P, R>(self, pattern: P, replacement: R) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        self.add_filter(crate::options::FilterTarget::Stderr, pattern, replacement)
+    }
+
+    fn add_filter<P, R>(
+        mut self,
+        target: crate::options::FilterTarget,
+        pattern: P,
+        replacement: R,
+    ) -> Self
+    where
+        P: AsRef<str>,
+        R: AsRef<str>,
+    {
+        use crate::options::RegexFilter;
+
+        let regex = regex::Regex::new(pattern.as_ref())
+            .unwrap_or_else(|e| panic!("Invalid regex pattern '{}': {}", pattern.as_ref(), e));
+
+        self.options.filters.push(RegexFilter {
+            target,
+            pattern: regex,
+            replacement: replacement.as_ref().to_owned(),
+        });
+
         self
     }
 

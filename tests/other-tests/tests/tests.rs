@@ -125,7 +125,12 @@ mod run {
 
     #[test]
     pub fn expect_fail() {
-        tryexpand::run([FAIL_PATTERN]).expect_fail();
+        tryexpand::run([FAIL_PATTERN])
+            .filter_stderr(
+                r"thread '([^']+)' \([^)]+\) panicked at",
+                "thread '$1' (<ID>) panicked at",
+            )
+            .expect_fail();
     }
 
     #[test]
@@ -134,6 +139,10 @@ mod run {
         // We need to test with .skip_overwrite()
         // to avoid overwriting snapshots of `pass()`:
         tryexpand::run([PASS_PATTERN])
+            .filter_stderr(
+                r"thread '([^']+)' \([^)]+\) panicked at",
+                "thread '$1' (<ID>) panicked at",
+            )
             .skip_overwrite()
             .expect_fail();
     }
@@ -158,7 +167,12 @@ mod run_tests {
 
     #[test]
     pub fn expect_fail() {
-        tryexpand::run_tests([FAIL_PATTERN]).expect_fail();
+        tryexpand::run_tests([FAIL_PATTERN])
+            .filter_stdout(
+                r"thread '([^']+)' \([^)]+\) panicked at",
+                "thread '$1' (<ID>) panicked at",
+            )
+            .expect_fail();
     }
 
     #[test]
@@ -227,7 +241,13 @@ mod and_run {
 
     #[test]
     pub fn expect_fail() {
-        tryexpand::expand([FAIL_PATTERN]).and_run().expect_fail();
+        tryexpand::expand([FAIL_PATTERN])
+            .and_run()
+            .filter_stderr(
+                r"thread '([^']+)' \([^)]+\) panicked at",
+                "thread '$1' (<ID>) panicked at",
+            )
+            .expect_fail();
     }
 
     #[test]
@@ -264,6 +284,10 @@ mod and_run_tests {
     #[test]
     pub fn expect_fail() {
         tryexpand::expand([FAIL_PATTERN])
+            .filter_stdout(
+                r"thread '([^']+)' \([^)]+\) panicked at",
+                "thread '$1' (<ID>) panicked at",
+            )
             .and_run_tests()
             .expect_fail();
     }

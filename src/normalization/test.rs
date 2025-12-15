@@ -1,7 +1,10 @@
 use std::borrow::Cow;
 
 use crate::{
-    normalization::utils::{apply_replacements, post_process, project_info_replacements},
+    normalization::utils::{
+        apply_regex_replacements, apply_replacements, post_process, project_info_replacements,
+    },
+    options::{FilterTarget, RegexFilter},
     project::Project,
     test::Test,
 };
@@ -10,6 +13,7 @@ pub(crate) fn stdout<'a>(
     input: Cow<'a, str>,
     project: &Project,
     test: &Test,
+    filters: &[RegexFilter],
 ) -> Option<Cow<'a, str>> {
     let time_regex = regex::Regex::new(r"; finished in .+$").unwrap();
 
@@ -37,13 +41,16 @@ pub(crate) fn stdout<'a>(
 
     // test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
-    post_process(Cow::from(output))
+    let output = apply_regex_replacements(Cow::from(output), filters, FilterTarget::Stdout);
+
+    post_process(output)
 }
 
 pub(crate) fn stderr<'a>(
     input: Cow<'a, str>,
     project: &Project,
     test: &Test,
+    filters: &[RegexFilter],
 ) -> Option<Cow<'a, str>> {
     let replacements = project_info_replacements(project, test);
 
@@ -58,5 +65,7 @@ pub(crate) fn stderr<'a>(
         .collect::<Vec<_>>()
         .join("\n");
 
-    post_process(Cow::from(output))
+    let output = apply_regex_replacements(Cow::from(output), filters, FilterTarget::Stderr);
+
+    post_process(output)
 }

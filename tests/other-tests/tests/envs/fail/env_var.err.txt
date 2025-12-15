@@ -3,6 +3,4 @@ error: env var required
   |
 1 | const TEST_ENV_VAR: &str = env!("TEST_ENV", "env var required");
   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the macro `env` (in Nightly builds, run with -Z macro-backtrace for more info)
 error: could not compile `<CRATE>` (bin "<BIN>") due to 1 previous error

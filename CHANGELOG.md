@@ -20,7 +20,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Added
 
-- n/a
+- Added `filter_stdout()` and `filter_stderr()` methods for regex-based output filtering
 
 ### Changed
 
