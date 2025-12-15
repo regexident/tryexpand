@@ -24,7 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- n/a
+- Bumped MSRV from `1.86.0` to `1.88.0`.
 
 ### Deprecated
 
@@ -63,7 +63,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `cargo_metadata` from `0.20.0` to `0.22.0`
-- Bumped MSRV from `0.82.0` to `0.86.0`.
+- Bumped MSRV from `1.82.0` to `1.86.0`.
 
 ## [0.11.0] - 2025-06-25
 
@@ -71,7 +71,7 @@ Please make sure to add your changes to the appropriate categories:
 
 - Updated dependencies:
   - `cargo_metadata` from `0.19.2` to `0.20.0`
-- Bumped MSRV from `0.78.0` to `0.82.0`.
+- Bumped MSRV from `1.78.0` to `1.82.0`.
 
 ## [0.10.0] - 2025-05-10
 
@@ -187,7 +187,7 @@ Please make sure to add your changes to the appropriate categories:
   - `cargo_toml` from `0.18.0` to `0.19.1`
   - `serde` from `1.0.195` to `1.0.197`
   - `thiserror` from `1.0.56` to `1.0.57`
-- Bumped MSRV from `0.70.0` to `0.74.0`.
+- Bumped MSRV from `1.70.0` to `1.74.0`.
 
 ### Fixed
 
