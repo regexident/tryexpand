@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use crate::{
     cargo::{line_is_error, line_is_warning, line_should_be_omitted},
-    normalization::utils::{apply_replacements, post_process, project_info_replacements},
+    normalization::utils::{
+        apply_regex_replacements, apply_replacements, post_process, project_info_replacements,
+    },
+    options::{FilterTarget, RegexFilter},
     project::Project,
     test::Test,
 };
@@ -11,6 +14,7 @@ pub(crate) fn stdout<'a>(
     _input: Cow<'a, str>,
     _project: &Project,
     _test: &Test,
+    _filters: &[RegexFilter],
 ) -> Option<Cow<'a, str>> {
     // The stdout of `cargo check` isn't really that interesting to us.
     None
@@ -20,6 +24,7 @@ pub(crate) fn stderr<'a>(
     input: Cow<'a, str>,
     project: &Project,
     test: &Test,
+    filters: &[RegexFilter],
 ) -> Option<Cow<'a, str>> {
     let replacements = project_info_replacements(project, test);
 
@@ -37,5 +42,7 @@ pub(crate) fn stderr<'a>(
         .collect::<Vec<_>>()
         .join("\n");
 
-    post_process(Cow::from(output))
+    let output = apply_regex_replacements(Cow::from(output), filters, FilterTarget::Stderr);
+
+    post_process(output)
 }
