@@ -1,5 +1,6 @@
 //! Test harness for macro expansion.
 
+#![warn(missing_docs)]
 #![allow(clippy::test_attr_in_doctest)]
 
 use std::{panic::Location, path::Path};
