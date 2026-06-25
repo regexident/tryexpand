@@ -6,7 +6,7 @@ use cargo_metadata::{
 };
 use cargo_toml::{
     Badges, Dependency, DependencyDetail, DepsSet, Edition, Inheritable, Manifest, Package,
-    PatchSet, Product, Profiles, TargetDepsSet, Workspace,
+    PatchSet, Product, Profiles, SemVer, TargetDepsSet, Workspace,
 };
 
 use crate::{
@@ -27,7 +27,7 @@ where
 {
     #![allow(clippy::field_reassign_with_default)]
 
-    let mut package: Package = Package::new(test_crate_name.to_owned(), "0.0.0".to_owned());
+    let mut package: Package = Package::new(test_crate_name.to_owned(), SemVer::new(0, 0, 0));
 
     package.edition = match source_package.edition {
         SourceEdition::E2015 => Inheritable::Set(Edition::E2015),
@@ -80,7 +80,7 @@ where
 
         let mut dependency = DependencyDetail::default();
         dependency.package.clone_from(rename);
-        dependency.version = Some(req.to_string());
+        dependency.version = Some(req.clone());
         dependency.optional = *optional;
         dependency.default_features = *uses_default_features;
         dependency.features.clone_from(features);
