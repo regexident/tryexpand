@@ -25,6 +25,8 @@ Please make sure to add your changes to the appropriate categories:
 ### Changed
 
 - Bumped MSRV from “1.88.0” to “1.91.0”.
+- Updated dependencies:
+  - `cargo_toml` from `0.22.0` to `1.0.0`
 
 ### Deprecated
 
