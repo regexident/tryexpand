@@ -24,11 +24,7 @@ Please make sure to add your changes to the appropriate categories:
 
 ### Changed
 
-- Bumped MSRV from “1.88.0” to “1.91.0”.
-- Updated dependencies:
-  - `cargo_toml` from `0.22.0` to `1.0.0`
-  - `syn` from `2.0.0` to `3.0.0`
-  - `prettyplease` from `0.2.0` to `0.3.0`
+- n/a
 
 ### Deprecated
 
@@ -53,6 +49,16 @@ Please make sure to add your changes to the appropriate categories:
 ### Other
 
 - n/a
+
+## [0.14.0] - 2026-08-02
+
+### Changed
+
+- Bumped MSRV from “1.88.0” to “1.91.0”.
+- Updated dependencies:
+  - `cargo_toml` from `0.22.0` to `1.0.0`
+  - `syn` from `2.0.0` to `3.0.0`
+  - `prettyplease` from `0.2.0` to `0.3.0`
 
 ## [0.13.0] - 2025-12-15
 
