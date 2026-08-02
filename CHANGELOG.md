@@ -27,6 +27,8 @@ Please make sure to add your changes to the appropriate categories:
 - Bumped MSRV from “1.88.0” to “1.91.0”.
 - Updated dependencies:
   - `cargo_toml` from `0.22.0` to `1.0.0`
+  - `syn` from `2.0.0` to `3.0.0`
+  - `prettyplease` from `0.2.0` to `0.3.0`
 
 ### Deprecated
 
